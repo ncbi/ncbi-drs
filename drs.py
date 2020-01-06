@@ -12,6 +12,18 @@ app = connexion.App(__name__, options=options, specification_dir="./openapi")
 app.add_api("data_repository_service.swagger.yaml", strict_validation=True)
 
 
+def basic_auth(username, password, required_scopes=None):
+    if username == 'admin' and password == 'secret':
+        return {'sub': 'admin'}
+
+    # optional: raise exception for custom error response
+    return None
+
+
+def get_secret(user) -> str:
+    return "You are {user} and the secret is 'wbevuec'".format(user=user)
+
+
 # Create a URL route in our application for "/"
 @app.route("/")
 def home():
