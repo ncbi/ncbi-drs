@@ -5,7 +5,10 @@ import getpass
 import connexion
 
 # Create the application instance
-options = {"serve_spec": False}  # Don't show spec JSON
+options = {
+    "serve_spec": False,  # Don't show spec JSON
+    "swagger_ui": False,
+}  # Don't show swagger console
 app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
 # Read the swagger.yml file to configure the endpoints
@@ -13,8 +16,8 @@ app.add_api("data_repository_service.swagger.yaml", strict_validation=True)
 
 
 def basic_auth(username, password, required_scopes=None):
-    if username == 'admin' and password == 'secret':
-        return {'sub': 'admin'}
+    if username == "admin" and password == "secret":
+        return {"sub": "admin"}
 
     # optional: raise exception for custom error response
     return None
