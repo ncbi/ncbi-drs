@@ -1,34 +1,29 @@
-FROM centos:8
+FROM ubuntu:latest
+# Currently LTS (5 year support). 18.04 likely will roll to 20.04
+
 LABEL author="Mike Vartanian"
 MAINTAINER mike.vartanian@nih.gov
 
-RUN yum -y --exclude=kernel.* update
-RUN yum -y install python3 httpd mod_wsgi git
-RUN pip3 install connexion python_dateutil setuptools \
+RUN apt-get -q update -y
+RUN apt-get -q upgrade -y
+RUN apt-get -q install -y -q python3 apache2 libapache2-mod-wsgi-py3 python3-pip
+RUN pip3 -q install connexion python_dateutil setuptools \
              flask_testing coverage \
              nose pluggy py randomize black pylint
 
-# Apache conf
-RUN sed -i -r 's@#(LoadModule rewrite_module modules/mod_rewrite.so)@\1@i' /etc/apache2/httpd.conf
-RUN sed -i -r 's@Errorlog .*@Errorlog /dev/stderr@i' /etc/apache2/httpd.conf
-RUN sed -i -r 's@#Servername.*@Servername wsgi@i' /etc/apache2/httpd.conf
-RUN echo -e "Transferlog /dev/stdout\n\
-LoadModule wsgi_module modules/mod_wsgi.so\n\
-WSGIPythonPath /usr/lib/python3.6\n\
-Alias / /srv/\n\
-<Directory /srv>\n\
-    Options ExecCGI Indexes FollowSymLinks\n\
-    AllowOverride All\n\
-    Require all granted\n\
-    AddHandler wsgi-script .wsgi\n\
-</Directory>" >> /etc/apache2/httpd.conf
+# Copy python script to /var/www/html
+# Add to /etc/apache2/conf-available/mod-wsgi.conf
 
-RUN mkdir -p /run/apache2
+#RUN rm -f /var/www/html/index.html
+#RUN a2enconf mod-wsgi
+#WSGIScriptAlias /path file.py
+RUN systemctl restart apache2
 
 WORKDIR /srv
+
 EXPOSE 80
 
 ONBUILD COPY . /srv
 
-CMD ["httpd", "-D", "FOREGROUND", "-e", "info"]
+CMD ["apache2", "-D", "FOREGROUND", "-e", "info"]
 

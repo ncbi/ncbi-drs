@@ -16,7 +16,8 @@ readonly SGID=sg-5d37473a
 # sg-5d37473a allows RDP (3389)
 readonly EXPIRES="480" # in minutes
 
-AMI="ami-00a208c7cdba991ea"
+# https://cloud-images.ubuntu.com/locator/ec2/
+AMI="ami-00a208c7cdba991ea" # Ubuntu 18.04 LTS, good until 2023-ish
 
 distro="Ubuntu 18.04 LTS"
 titledistro="$distro"
@@ -50,7 +51,7 @@ cat >> "$script" << ENDSCRIPT
 #!/bin/bash
 # Output from this script can be found in /var/log/cloud-init-output.log
 
-nohup shutdown -P +$EXPIRES > /home/ec2-user/shutdown_out 2>&1  &
+nohup shutdown -P +$EXPIRES > /tmp/shutdown_out 2>&1  &
 
 sleep 50 # Wait for cloud-init updater to finish
 
@@ -58,13 +59,14 @@ sleep 50 # Wait for cloud-init updater to finish
 wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
 sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
 
-sudo apt-mark hold linux-image-generic linux-aws
+sudo apt-mark hold linux-image-generic linux-aws \
+    grub-common grub-pc grub-pc-bin grub2-common
 sudo apt-get update -y
 sudo apt-get upgrade -y
-sudo apt-get install docker.io python3 \
-             apache2 git libapache2-mod-wsgi-py3 \
-             openjdk-11-jre-headless
-sudo apt-get install jenkins
+sudo apt-get install -y docker.io python3 python3-pip \
+             git openjdk-11-jre-headless
+#             apache2 libapache2-mod-wsgi-py3 \
+sudo apt-get install -y jenkins
 
 sudo systemctl start jenkins
 
@@ -76,7 +78,7 @@ iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 80
 
 
 
-usermod -aG docker ec2-user
+usermod -aG docker ubuntu
 usermod -aG docker jenkins
 
 
@@ -152,7 +154,7 @@ done
 
 
 echo "ssh -2akx $login@$ip_addr"
-sleep 120
+sleep 240
 echo "Jenkins should be running on http://$ip_addr"
 jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
 echo "Initial Jenkins password is $jenkins_password"
