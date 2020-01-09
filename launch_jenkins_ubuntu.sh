@@ -16,18 +16,11 @@ readonly SGID=sg-5d37473a
 # sg-5d37473a allows RDP (3389)
 readonly EXPIRES="480" # in minutes
 
-AMI=$(aws ssm get-parameters \
-    --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 \
-    --region us-east-1 | jq -r '.Parameters[0].Value')
+AMI="ami-00a208c7cdba991ea"
 
-
-
-# aws --region us-east-1 ec2 describe-images --owners aws-marketplace \
-    #    --filters Name=product-code,Values=aw0evgkw8e5c1q413zgy5pjce | grep 180
-#AMI="ami-d5bf2caa"
-distro="Amazon Linux 2 LTS" # 2 LTS
+distro="Ubuntu 18.04 LTS"
 titledistro="$distro"
-login="ec2-user"
+login="ubuntu"
 
 declare -A tags
 tags["Project"]="VDB"
@@ -61,43 +54,27 @@ nohup shutdown -P +$EXPIRES > /home/ec2-user/shutdown_out 2>&1  &
 
 sleep 50 # Wait for cloud-init updater to finish
 
-# Place Jenkins workdir on NVMe SSD
-#if [[ -b /dev/nvme1n1 ]]; then
-#    echo "Moving Jenkins to NVMe SSD"
-#    mkfs -t xfs -f /dev/nvme1n1
-#    mkdir /var/lib/jenkins
-#    mount /dev/nvme1n1 /var/lib/jenkins
-#    chgrp jenkins /var/lib/jenkins
-#    chmod ug+rwx /var/lib/jenkins
-#fi
-
-
-yum -y install java
 # Install LTS version of Jenkins
-wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
-rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
-yum -y install jenkins
+wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
+sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
 
-yum -u install docker python3 httpd mod_wsgi git
+sudo apt-mark hold linux-image-generic linux-aws
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt-get install docker.io python3 \
+             apache2 git libapache2-mod-wsgi-py3 \
+             openjdk-11-jre-headless
+sudo apt-get install jenkins
 
-yum -y --exclude=kernel.* update &
+sudo systemctl start jenkins
 
 pip3 install connexion python_dateutil setuptools \
              flask_testing coverage \
              nose pluggy py randomize black pylint &
 
-update-motd
-
 iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
-service docker start
-service jenkins start
-chkconfig jenkins on
-
-#sudo groupadd docker
-#systemctl start jenkins.service
-#systemctl enable jenkins.service # Not that we expect a reboot
 
 usermod -aG docker ec2-user
 usermod -aG docker jenkins
