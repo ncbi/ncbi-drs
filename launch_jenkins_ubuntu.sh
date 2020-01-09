@@ -61,11 +61,16 @@ sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sour
 
 sudo apt-mark hold linux-image-generic linux-aws \
     grub-common grub-pc grub-pc-bin grub2-common
+
 sudo apt-get update -y
+
 sudo apt-get upgrade -y
+
 sudo apt-get install -y docker.io python3 python3-pip \
              git openjdk-11-jre-headless
-#             apache2 libapache2-mod-wsgi-py3 \
+
+#             apache2 libapache2-mod-wsgi-py3
+
 sudo apt-get install -y jenkins
 
 sudo systemctl start jenkins
@@ -165,6 +170,7 @@ echo "Initial Jenkins password is $jenkins_password"
 # cp build/Dockerfile.*
 # Copy dependencies to EC2:
 # scp Dockerfile build.sh ~/devel/asm-trace/build/TeamCity.sh ubuntu@54.166.139.160:
+# sudo docker build - < Dockerfile
 # sudo docker build -t ubuntu . # Creates image
 # sudo docker images # Lists images
 # sudo docker save -o out.tar image # image to tar
