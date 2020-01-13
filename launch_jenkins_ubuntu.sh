@@ -159,6 +159,7 @@ done
 
 
 echo "ssh -2akx $login@$ip_addr"
+echo "git clone https://github.com/ncbi/ncbi-drs/"
 sleep 240
 echo "Jenkins should be running on http://$ip_addr"
 jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)

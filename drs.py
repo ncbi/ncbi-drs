@@ -31,7 +31,7 @@ def get_secret(user) -> str:
 @app.route("/")
 def home():
     """
-    This function just responds to the browser ULR
+    This function just responds to the browser URL
     localhost:5000/
     :return:        the rendered template 'home.html'
     """

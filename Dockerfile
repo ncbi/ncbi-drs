@@ -12,11 +12,19 @@ RUN pip3 -q install connexion python_dateutil setuptools \
              nose pluggy py randomize black pylint
 
 # Copy python script to /var/www/html
-# Add to /etc/apache2/conf-available/mod-wsgi.conf
+# Add to /etc/apache2/mods-enabled/mod-wsgi.conf
 
-#RUN rm -f /var/www/html/index.html
-#RUN a2enconf mod-wsgi
+RUN rm -f /var/www/html/index.html
+RUN mkdir -p /var/www/html/wsgi-scripts/
+
+ONBUILD COPY application.py /var/www/html/wsgi-scripts/application.py
+ONBUILD COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
+
+RUN chmod 755 /var/www/html/wsgi-scripts/application.py
+
 #WSGIScriptAlias /path file.py
+
+
 RUN systemctl restart apache2
 
 WORKDIR /srv
