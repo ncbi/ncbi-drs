@@ -15,6 +15,7 @@ repos:
     -   id: mixed-line-ending
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
+    -   id: check-xml
 -   repo: https://github.com/ambv/black
     rev: 19.10b0
     hooks:

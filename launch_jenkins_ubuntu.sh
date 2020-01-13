@@ -82,7 +82,6 @@ pip3 install connexion python_dateutil setuptools \
 iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
-
 usermod -aG docker ubuntu
 usermod -aG docker jenkins
 
@@ -164,6 +163,10 @@ sleep 240
 echo "Jenkins should be running on http://$ip_addr"
 jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
 echo "Initial Jenkins password is $jenkins_password"
+
+
+# docker run -p 443:8080 -v jenkins_home:$HOME jenkins/jenkins:lts
+
 
 #sudo docker build -t centos7 -f Dockerfile.centos7  .
 #sudo docker build -t debian9 -f Dockerfile.debian9 .
