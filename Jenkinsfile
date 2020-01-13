@@ -11,17 +11,17 @@ pipeline
     stages {
         stage('build') {
             steps {
-                sh 'test'
+                sh 'build.sh'
             }
         }
         stage('docs') {
             steps {
-                sh 'make docs'
+                sh 'build.sh docs'
             }
         }
         stage('package') {
             steps {
-                sh 'make package'
+                sh 'build.sh package'
             }
         }
     }
