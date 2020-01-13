@@ -34,4 +34,3 @@ EXPOSE 80
 ONBUILD COPY . /srv
 
 CMD ["apache2", "-D", "FOREGROUND", "-e", "info"]
-
