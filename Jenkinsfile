@@ -1,17 +1,16 @@
 pipeline
 {
-    agent
-    {
-        docker
-        {
-            image 'ncbi-drs.ubuntu.ci'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+    agent any
+
     stages {
-        stage('build') {
+        stage('Build') {
             steps {
                 sh 'build.sh'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh 'build.sh test'
             }
         }
         stage('docs') {
