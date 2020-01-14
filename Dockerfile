@@ -20,9 +20,10 @@ COPY application.py /var/www/wsgi-scripts/application.py
 RUN chmod 755 /var/www/wsgi-scripts/application.py
 
 COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
-RUN echo "ServerName 127.0.0.1:80" >> /etc/httpd/conf/httpd.conf
-RUN echo "LogLevel info" >> /etc/httpd/conf/httpd.conf
-RUN echo "ServerSignature Off" >> /etc/httpd/conf/httpd.conf
+RUN mkdir -p /etc/apache2/conf
+RUN echo "ServerName 127.0.0.1:80" >> /etc/apache2/apache2.conf
+RUN echo "LogLevel info" >> /etc/apache2/apache2.conf
+RUN echo "ServerSignature Off" >> /etc/apache2/apache2.conf
 
 #WSGIScriptAlias /path file.py
 
