@@ -13,14 +13,16 @@ RUN pip3 -q install connexion python_dateutil setuptools \
 # Copy python script to /var/www/html
 # Add to /etc/apache2/mods-enabled/mod-wsgi.conf
 
-RUN rm -f /var/www/html/index.html
-RUN mkdir -p /var/www/html/wsgi-scripts/
+RUN echo "Empty" > /var/www/html/index.html
 
-COPY application.py /var/www/html/wsgi-scripts/application.py
+RUN mkdir -p /var/www/wsgi-scripts/
+COPY application.py /var/www/wsgi-scripts/application.py
+RUN chmod 755 /var/www/wsgi-scripts/application.py
+
 COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
-
 RUN echo "ServerName 127.0.0.1:80" >> /etc/httpd/conf/httpd.conf
-RUN chmod 755 /var/www/html/wsgi-scripts/application.py
+RUN echo "LogLevel info" >> /etc/httpd/conf/httpd.conf
+RUN echo "ServerSignature Off" >> /etc/httpd/conf/httpd.conf
 
 #WSGIScriptAlias /path file.py
 
