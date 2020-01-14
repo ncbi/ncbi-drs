@@ -10,17 +10,17 @@ pipeline
         }
         stage('Test') {
             steps {
-                sh './build.sh test'
+                sh './test.sh'
             }
         }
-        stage('docs') {
+        stage('Docs') {
             steps {
-                sh './build.sh docs'
+                sh './build_docs.sh'
             }
         }
-        stage('package') {
+        stage('Package') {
             steps {
-                sh './build.sh package'
+                sh './package.sh'
             }
         }
     }

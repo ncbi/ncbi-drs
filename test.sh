@@ -2,6 +2,6 @@
 set -euo pipefail
 shopt -s nullglob globstar
 
-pylint application.py ga4gh/drs/server.py
+docker run -dit --name ga4gh -p 20814:80 drs
 
 exit 0

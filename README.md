@@ -6,4 +6,9 @@ Repository Service (DRS).
 # Pre-commit
 pip install pre-commit
 pre-commit install
+
+# Pre-commit flight check
 pre-commit run --all-files
+
+# To build outside jenkins:
+$ ./build.sh
