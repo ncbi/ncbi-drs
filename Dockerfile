@@ -14,6 +14,7 @@ RUN pip3 -q install connexion python_dateutil setuptools \
 # Add to /etc/apache2/mods-enabled/mod-wsgi.conf
 
 RUN echo "Empty" > /var/www/html/index.html
+COPY favicon.ico /var/www/favicon.ico
 
 RUN mkdir -p /var/www/wsgi-scripts/
 COPY application.py /var/www/wsgi-scripts/application.py
@@ -25,15 +26,6 @@ RUN echo "ServerName 127.0.0.1:80" >> /etc/apache2/apache2.conf
 RUN echo "LogLevel info" >> /etc/apache2/apache2.conf
 RUN echo "ServerSignature Off" >> /etc/apache2/apache2.conf
 
-#WSGIScriptAlias /path file.py
-
-
-#RUN systemctl restart apache2
-
-WORKDIR /srv
-
 EXPOSE 80
-
-ONBUILD COPY . /srv
 
 CMD /usr/sbin/apache2ctl -D FOREGROUND
