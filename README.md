@@ -12,3 +12,6 @@ pre-commit run --all-files
 
 # To build outside jenkins:
 $ ./build.sh
+
+# To run tests, container will listen on external port 443 for firewall reasons
+$ ./test.sh

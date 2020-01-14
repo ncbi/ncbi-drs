@@ -19,6 +19,7 @@ RUN mkdir -p /var/www/html/wsgi-scripts/
 COPY application.py /var/www/html/wsgi-scripts/application.py
 COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
 
+RUN echo "ServerName 127.0.0.1:80" >> /etc/httpd/conf/httpd.conf
 RUN chmod 755 /var/www/html/wsgi-scripts/application.py
 
 #WSGIScriptAlias /path file.py
