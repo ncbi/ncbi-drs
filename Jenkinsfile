@@ -5,22 +5,22 @@ pipeline
     stages {
         stage('Build') {
             steps {
-                sh 'build.sh'
+                sh './build.sh'
             }
         }
         stage('Test') {
             steps {
-                sh 'build.sh test'
+                sh './build.sh test'
             }
         }
         stage('docs') {
             steps {
-                sh 'build.sh docs'
+                sh './build.sh docs'
             }
         }
         stage('package') {
             steps {
-                sh 'build.sh package'
+                sh './build.sh package'
             }
         }
     }

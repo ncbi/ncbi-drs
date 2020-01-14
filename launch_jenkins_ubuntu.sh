@@ -162,12 +162,12 @@ scp jenkins.tar "$login@$ip_addr:/tmp"
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'
+ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
 
 echo "ssh -2akx $login@$ip_addr"
-echo "git clone https://github.com/ncbi/ncbi-drs/"
 echo "Jenkins should be running on http://$ip_addr"
-jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
-echo "Initial Jenkins password is $jenkins_password"
+#jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
+#echo "Initial Jenkins password is $jenkins_password"
 
 
 # docker run -p 443:8080 -v jenkins_home:$HOME jenkins/jenkins:lts
