@@ -1,16 +1,21 @@
-FROM jenkins/jenkins:lts
-LABEL maintainer="mvartanian@ncbi.nlm.nih.gov"
+FROM ubuntu:latest
+# Currently LTS (5 year support). 18.04 likely will roll to 20.04
 
-# docker build  -t drsjenkins .
-# docker run -p 443:8080 -p 50000:50000 drsjenkins
-# docker run -p 443:8080 --mount source=drs,target=/var/jenkins_home jenkins/jenkins:lts
-# docker cp id:/var/jenkins_home - > snap.tar
+LABEL author="Mike Vartanian"
+MAINTAINER mike.vartanian@nih.gov
 
-USER root
-RUN apt-get update && apt-get install -y
-USER jenkins
+RUN apt-get update -y && apt-get upgrade -y && \
+    apt-get -q install -y -q python3  python3-pip git openjdk-11-jre-headless wget
+RUN wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | apt-key add - > /dev/null 2>&1
+RUN echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y jenkins
+
+
 RUN mkdir -p $JENKINS_HOME/jobs/ncbi-drs/
-COPY new.tar /usr/share/jenkins/ref/new.tar
-RUN cd /usr/share/jenkins/ref && tar -xvf new.tar && ls -la
-RUN mkdir -p /usr/share/jenkins/ref/jobs
-COPY config.xml /usr/share/jenkins/ref/jobs
+COPY jenkins.tar /var/lib/jenkins/jenkins.tar
+COPY config.xml /var/lib/jenkins/jobs/config.xml
+COPY run_jenkins.sh /var/lib/jenkins/run_jenkins.sh
+
+CMD ["/var/lib/jenkins/run_jenkins.sh"]
+
+# docker run -d -p 443:8080 drsjenkins

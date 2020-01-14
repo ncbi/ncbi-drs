@@ -79,11 +79,12 @@ pip3 install connexion python_dateutil setuptools \
              flask_testing coverage \
              nose pluggy py randomize black pylint &
 
-iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
-usermod -aG docker ubuntu
-usermod -aG docker jenkins
+sudo usermod -aG docker ubuntu
+sudo usermod -aG docker jenkins
 
 
 #cat /var/lib/jenkins//secrets/initialAdminPassword
@@ -156,10 +157,14 @@ do
     ret=$?
 done
 
+sleep 240
+scp jenkins.tar "$login@$ip_addr:/tmp"
+ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
+ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
+ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'
 
 echo "ssh -2akx $login@$ip_addr"
 echo "git clone https://github.com/ncbi/ncbi-drs/"
-sleep 240
 echo "Jenkins should be running on http://$ip_addr"
 jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
 echo "Initial Jenkins password is $jenkins_password"
