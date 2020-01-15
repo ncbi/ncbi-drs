@@ -11,7 +11,16 @@ if [[ -z ${GIT_COMMIT+x} ]]; then
 fi
 
 #docker run --name ga4gh -p 443:80 drs
-docker run -t "${BRANCH_NAME}_${GIT_COMMIT:0:6}" -p 443:80 drs
+docker run -t --name "${BRANCH_NAME}_${GIT_COMMIT:0:6}" -p 443:80 drs &
+sleep 5
+
+out=$(curl http://localhost:443/)
+if [[ "$out" = "Hello World!" ]]; then
+    echo "OK"
+else
+    exit 1
+fi
+
 # http://.../wsgi -> "Hello World!"
 
 exit 0
