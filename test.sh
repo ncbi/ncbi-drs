@@ -2,6 +2,8 @@
 set -euo pipefail
 shopt -s nullglob globstar
 
+env
+
 docker run --name ga4gh -p 443:80 drs
 # http://.../wsgi -> "Hello World!"
 
