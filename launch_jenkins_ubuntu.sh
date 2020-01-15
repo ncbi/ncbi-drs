@@ -8,7 +8,7 @@ if [ -z "$AWS_ACCESS_KEY_ID" ]; then
     exit
 fi
 
-readonly INSTANCE="t3a.micro" # nano doesn't have enough RAM
+readonly INSTANCE="t3a.micro" # nano doesn't have enough RAM, ~23 cents/day
 readonly KEY_NAME=$USER
 readonly SUBNET=subnet-4f505738
 readonly SGID=sg-5d37473a
@@ -158,7 +158,7 @@ do
 done
 
 sleep 240
-scp jenkins.tar "$login@$ip_addr:/tmp"
+scp /home/vartanianmh/jenkins.tar "$login@$ip_addr:/tmp/jenkins.tar"
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'

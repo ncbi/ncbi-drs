@@ -15,6 +15,7 @@ RUN pip3 -q install connexion python_dateutil setuptools \
 
 RUN echo "Empty" > /var/www/html/index.html
 COPY favicon.ico /var/www/favicon.ico
+RUN chmod 755 /var/www/favicon.ico
 
 RUN mkdir -p /var/www/wsgi-scripts/
 COPY application.py /var/www/wsgi-scripts/application.py
@@ -25,6 +26,7 @@ RUN mkdir -p /etc/apache2/conf
 RUN echo "ServerName 127.0.0.1:80" >> /etc/apache2/apache2.conf
 RUN echo "LogLevel info" >> /etc/apache2/apache2.conf
 RUN echo "ServerSignature Off" >> /etc/apache2/apache2.conf
+RUN echo "ServerTokens Prod" >> /etc/apache2/apache2.conf
 
 EXPOSE 80
 

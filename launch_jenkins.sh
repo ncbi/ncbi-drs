@@ -8,7 +8,7 @@ if [ -z "$AWS_ACCESS_KEY_ID" ]; then
     exit
 fi
 
-readonly INSTANCE="t3a.micro" # nano doesn't have enough RAM
+readonly INSTANCE="t3a.micro" # nano doesn't have enough RAM, ~23 cents/day
 readonly KEY_NAME=$USER
 readonly SUBNET=subnet-4f505738
 readonly SGID=sg-5d37473a
