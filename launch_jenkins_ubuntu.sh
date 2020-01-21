@@ -67,7 +67,7 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless
+             git openjdk-11-jre-headless shellcheck
 
 #             apache2 libapache2-mod-wsgi-py3
 
@@ -77,7 +77,7 @@ sudo systemctl start jenkins
 
 pip3 install connexion python_dateutil setuptools \
              flask_testing coverage \
-             nose pluggy py randomize black pylint &
+             nose pluggy py randomize black pylint pre-commit &
 
 sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 80 -j REDIRECT --to-port 8080
@@ -158,7 +158,7 @@ do
 done
 
 sleep 240
-scp /home/vartanianmh/jenkins.tar "$login@$ip_addr:/tmp/jenkins.tar"
+scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:/tmp/jenkins.tar"
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'
