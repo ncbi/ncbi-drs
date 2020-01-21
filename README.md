@@ -8,6 +8,7 @@ pip3 install pre-commit
 ~/.local/bin/pre-commit install
 
 # Pre-commit flight check
+export AWS_SESSION_TOKEN=123 # dummy credential if no other found
 ~/.local/bin/pre-commit run --all-files
 
 # To build outside jenkins:
