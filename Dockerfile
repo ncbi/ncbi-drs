@@ -31,3 +31,21 @@ RUN echo "ServerTokens Prod" >> /etc/apache2/apache2.conf
 EXPOSE 80
 
 CMD /usr/sbin/apache2ctl -D FOREGROUND
+
+# Docker hints
+# ____________
+#
+# sudo docker build - < Dockerfile
+# sudo docker build -t ubuntu . # Creates image
+# sudo docker images # Lists images
+# sudo docker save -o out.tar image # image to tar
+# sudo docker run -it image-id # Creates container from image and runs
+# CAn also docker create and then docker start
+# sudo docker run -it image-id bash # debugging
+# sudo docker ps # Shows "running" containers
+# docker commit goes from container back to image
+
+
+# Cleanup
+# sudo docker rm -f $(sudo docker ps -a -q)
+# sudo docker rmi $(sudo docker images -q)

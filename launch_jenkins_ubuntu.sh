@@ -166,30 +166,3 @@ ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
 
 echo "ssh -2akx $login@$ip_addr"
 echo "Jenkins should be running on http://$ip_addr"
-#jenkins_password=$(ssh -2akx "$login@$ip_addr" sudo cat /var/lib/jenkins/secrets/initialAdminPassword)
-#echo "Initial Jenkins password is $jenkins_password"
-
-
-# docker run -p 443:8080 -v jenkins_home:$HOME jenkins/jenkins:lts
-
-
-#sudo docker build -t centos7 -f Dockerfile.centos7  .
-#sudo docker build -t debian9 -f Dockerfile.debian9 .
-
-# cp build/Dockerfile.*
-# Copy dependencies to EC2:
-# scp Dockerfile build.sh ~/devel/asm-trace/build/TeamCity.sh ubuntu@54.166.139.160:
-# sudo docker build - < Dockerfile
-# sudo docker build -t ubuntu . # Creates image
-# sudo docker images # Lists images
-# sudo docker save -o out.tar image # image to tar
-# sudo docker run -it image-id # Creates container from image and runs
-# Could also docker create and then docker start
-# sudo docker run -it image-id bash # debugging
-# sudo docker ps # Shows "running" containers
-# docker commit goes from container back to image
-
-
-# Cleanup
-# sudo docker rm -f $(sudo docker ps -a -q)
-# sudo docker rmi $(sudo docker images -q)
