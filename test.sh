@@ -13,10 +13,17 @@ fi
 PORT=$((RANDOM+1024))
 echo "Running docker image, listening on host port $PORT"
 
-docker run -t --name "${BRANCH_NAME}_${GIT_COMMIT:0:6}" -p $PORT:80 drs &
+NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}"
+docker run -t --name "$NAME" -p $PORT:80 drs &
 sleep 5
 
+CID=$(docker ps -q --filter "name=$NAME")
+echo "containter is $CID"
+
 out=$(curl http://localhost:$PORT/)
+
+docker kill "$CID"
+
 if [[ "$out" = "Hello World!" ]]; then
     echo "OK"
 else
