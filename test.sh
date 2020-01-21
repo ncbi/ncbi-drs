@@ -3,11 +3,11 @@ set -euo pipefail
 shopt -s nullglob globstar
 
 if [[ -z ${BRANCH_NAME+x} ]]; then
-    BRANCH_NAME="none"
+    BRANCH_NAME=$(git symbolic-ref --short HEAD)
 fi
 
 if [[ -z ${GIT_COMMIT+x} ]]; then
-    GIT_COMMIT="none"
+    GIT_COMMIT=$RANDOM
 fi
 
 PORT=$((RANDOM+1024))
