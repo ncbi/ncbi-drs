@@ -17,5 +17,3 @@ COPY config.xml /var/lib/jenkins/jobs/config.xml
 COPY run_jenkins.sh /var/lib/jenkins/run_jenkins.sh
 
 CMD ["/var/lib/jenkins/run_jenkins.sh"]
-
-# docker run -d -p 443:8080 drsjenkins

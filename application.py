@@ -1,3 +1,6 @@
+# TODO: Logging
+
+
 def application(environ, start_response):
     status = "200 OK"
     output = b"Hello World!"
