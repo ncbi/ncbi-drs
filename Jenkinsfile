@@ -8,9 +8,9 @@ pipeline
                 sh './build.sh'
             }
         }
-        stage('Test') {
+        stage('Unit Tests') {
             steps {
-                sh './test.sh'
+                sh './unit_test.sh'
             }
         }
         stage('Docs') {
@@ -21,6 +21,11 @@ pipeline
         stage('Package') {
             steps {
                 sh './package.sh'
+            }
+        }
+        stage('Test') {
+            steps {
+                sh './test.sh'
             }
         }
     }
