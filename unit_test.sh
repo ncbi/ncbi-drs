@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
 shopt -s nullglob globstar
+
+echo "Starting unit tests"
 
 if [[ -z ${BRANCH_NAME+x} ]]; then
     BRANCH_NAME="none"
