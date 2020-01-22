@@ -10,18 +10,22 @@ if [[ -z ${GIT_COMMIT+x} ]]; then
     GIT_COMMIT="none"
 fi
 
-~/.local/bin/uwsgi --http :4772 --wsgi-file drs.py
+PORT=$((RANDOM+1024))
+#~/.local/bin/uwsgi --http ":$PORT" --wsgi-file drs.py &
+uwsgi --http ":$PORT" --wsgi-file drs.py &
 
-#docker run -t --name "${BRANCH_NAME}_${GIT_COMMIT:0:6}" -p $PORT:80 drs &
-sleep 5
+sleep 2
+RET=0
+out=$(curl http://localhost:$PORT/)
 
-#out=$(curl http://localhost:$PORT/)
-#if [[ "$out" = "Hello World!" ]]; then
-#    echo "OK"
-#else
-#    exit 1
-#fi
+if [[ "$out" =~ "Hello, Apache!" ]]; then
+    echo "OK"
+else
+    echo "Failed: $out"
+    RET=1
+fi
 
-# http://.../wsgi -> "Hello World!"
+echo "Killing uwsgi"
+kill %1
 
-exit 0
+exit $RET

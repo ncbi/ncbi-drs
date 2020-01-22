@@ -4,6 +4,9 @@ from flask import render_template
 import connexion
 import getpass
 import logging
+import sys
+
+sys.path.append("/var/www/wsgi-scripts/")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -41,22 +44,9 @@ def home():
     localhost:5000/
     :return:        the rendered template 'home.html'
     """
-    username = getpass.getuser()
+    username = "Apache"  # getpass.getuser()
     # connexion.request.method
-    return render_template("home.html", title="DRS", user=username)
-
-
-# def application(environ, start_response):
-#    status = "200 OK"
-#    output = b"Hello World!"
-#
-#    response_headers = [
-#        ("Content-type", "text/plain"),
-#        ("Content-Length", str(len(output))),
-#    ]
-#    start_response(status, response_headers)
-#
-#    return [output]
+    return render_template("home.html", title="DRS", username=username)
 
 
 # If we're running in stand alone mode, run the application

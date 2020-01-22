@@ -20,16 +20,18 @@ sleep 5
 CID=$(docker ps -q --filter "name=$NAME")
 echo "containter is $CID"
 
+RET=0
 out=$(curl http://localhost:$PORT/)
 
-docker kill "$CID"
-
-if [[ "$out" = "Hello World!" ]]; then
+if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
 else
-    exit 1
+    echo "Failed: $out"
+    docker exec -it "$NAME" /usr/bin/tail -20 /var/log/apache2/error.log
+    RET=1
 fi
 
-# http://.../wsgi -> "Hello World!"
+echo "Killing docker image"
+docker kill "$CID"
 
-exit 0
+exit $RET

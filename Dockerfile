@@ -17,10 +17,15 @@ RUN echo "Empty" > /var/www/html/index.html
 COPY favicon.ico /var/www/favicon.ico
 RUN chmod 755 /var/www/favicon.ico
 
-RUN mkdir -p /var/www/wsgi-scripts/ga4gh/drs
+RUN mkdir -p /var/www/wsgi-scripts/ga4gh/drs /var/www/wsgi-scripts/templates
 COPY drs.py /var/www/wsgi-scripts/drs.py
 COPY ga4gh/drs/server.py /var/www/wsgi-scripts/ga4gh/drs/server.py
-RUN chmod 755 /var/www/wsgi-scripts/drs.py /var/www/wsgi-scripts/ga4gh/drs/server.py
+COPY openapi/data_repository_service.swagger.yaml /var/www/wsgi-scripts/openapi/data_repository_service.swagger.yaml
+COPY templates/home.html /var/www/wsgi-scripts/templates/home.html
+RUN chmod 755 /var/www/wsgi-scripts/drs.py \
+        /var/www/wsgi-scripts/ga4gh/drs/server.py \
+        /var/www/wsgi-scripts/openapi/data_repository_service.swagger.yaml \
+        /var/www/wsgi-scripts/templates/home.html
 
 
 COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
