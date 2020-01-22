@@ -11,9 +11,9 @@ if [[ -z ${GIT_COMMIT+x} ]]; then
 fi
 
 PORT=$((RANDOM+1024))
-echo "Running docker image, listening on host port $PORT"
-
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}"
+
+echo "Running docker image $NAME, listening on host port $PORT"
 docker run -t --name "$NAME" -p $PORT:80 drs &
 sleep 5
 

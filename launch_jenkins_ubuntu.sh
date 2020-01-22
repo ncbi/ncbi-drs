@@ -67,9 +67,10 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless shellcheck awscli
+             git openjdk-11-jre-headless shellcheck
 
-#             apache2 libapache2-mod-wsgi-py3
+#awscli uwsgi-core
+#apache2 libapache2-mod-wsgi-py3
 
 sudo apt-get install -y jenkins
 
@@ -77,7 +78,10 @@ sudo systemctl start jenkins
 
 pip3 install connexion python_dateutil setuptools \
              flask_testing coverage \
-             nose pluggy py randomize black pylint pre-commit &
+             nose pluggy py randomize black pylint pre-commit \
+             uwsgi &
+
+pip3 install -U uwsgi # Redundant?
 
 sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
 sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 80 -j REDIRECT --to-port 8080
