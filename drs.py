@@ -6,10 +6,7 @@ import os
 import sys
 from flask import render_template
 
-# import getpass
-
 sys.path.append("/var/www/wsgi-scripts/")
-# sys.path.append(".")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -33,29 +30,9 @@ os.environ["APIKEYINFO_FUNC"] = "ga4gh.drs.server.apikey_auth"
 app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
 # Read the swagger.yml file to configure the endpoints
-app.add_api("data_repository_service.swagger.yaml", strict_validation=False)
+app.add_api("data_repository_service.swagger.yaml", strict_validation=False)  # FIXME
 
 application = app.app
-
-
-def basic_auth(username, password, required_scopes=None):
-    logger.info(f"basic_auth {username} {password}")
-    if username == "admin" and password == "secret":
-        return {"sub": "admin"}
-
-    # optional: raise exception for custom error response
-    return None
-
-
-def get_secret(user) -> str:
-    logger.info(f"get_secret {user}")
-    return "You are {user} and the secret is 'wbevuec'".format(user=user)
-
-
-def apikey_auth(token, required_scopes):
-    logger.info(f"Main Got apikey {token}")
-    ok = {"uid": 100}
-    return ok
 
 
 # Create a URL route in our application for "/"
@@ -78,4 +55,4 @@ def home():
 # If we're running in stand alone mode, run the application
 if __name__ == "__main__":
     logger.info("in main")
-    app.run(port=4772, debug=True)
+    app.run(port=20814, debug=True)

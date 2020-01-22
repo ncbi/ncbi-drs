@@ -10,6 +10,14 @@ def get_timestamp():
     return datetime.now().strftime(("%Y-%m-%d %H:%M:%S"))
 
 
+def apikey_auth(token, required_scopes):
+    logging.info(f"Got server apikey {token} {required_scopes}")
+    ok = {"uid": 100}
+    if False:
+        raise OAuthProblem("Invalid token")
+    return ok
+
+
 def GetObject(object_id: str, expand: bool):
     logging.info(f"In GetObject {object_id} {expand}")
     logging.info(f"params is {connexion.request.json}")
@@ -38,11 +46,3 @@ def GetAccessURL(object_id: str, access_id: str):
 def read():
     logging.info(f"In read()")
     return []
-
-
-def apikey_auth(token, required_scopes):
-    logging.info(f"Got server apikey {token} {required_scopes}")
-    ok = {"uid": 100}
-    if False:
-        raise OAuthProblem("Invalid token")
-    return ok
