@@ -1,13 +1,14 @@
 import connexion
 import logging
-from datetime import datetime
+import datetime
 
 # from connexion import NoContent
 from flask import make_response, abort
 
 
 def get_timestamp():
-    return datetime.now().strftime(("%Y-%m-%d %H:%M:%S"))
+    d = datetime.datetime.utcnow()
+    return d.isoformat("T") + "Z"
 
 
 def apikey_auth(token, required_scopes):
@@ -24,11 +25,31 @@ def GetObject(object_id: str, expand: bool):
     logging.info(f"query is {connexion.request.args}")
     ret = {}
     ret["id"] = "id goes here"
-    ret["name"] = "name goes here"
+    ret["self_uri"] = "http://example.com"
     ret["size"] = 12345
     ret["created_time"] = "1990-12-31T23:59:60Z"
+    valid_sums = [
+        "sha-256",
+        "sha-512",
+        "sha3-256",
+        "sha3-512",
+        "md5",
+        "etag",
+        "crc32c",
+        "trunc512",
+        "sha1",
+    ]
     csum = {"checksum": "FFFFFFF", "type": "crc32c"}
     ret["checksums"] = [csum]
+
+    # Optional fields
+    ret["name"] = "name goes here"
+    ret["updated_time"] = get_timestamp()
+    ret["version"] = "version"
+    ret["mime_type"] = "application/json"
+    ret["access_methods"] = ["https", "s3", "gs"]
+    ret["description"] = "description"
+    ret["aliases"] = "aliases"
 
     return ret
 
@@ -37,7 +58,7 @@ def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"In GetAccessURL {object_id} {access_id}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
-    ret["url"] = "http://gohere"
+    ret["self_uri"] = "http://gohere"
     ret["headers"] = ["foo", "bar"]
 
     return ret
