@@ -25,6 +25,9 @@ else
     RET=1
 fi
 
+out=$(curl -u admin:secret http://localhost:$PORT/ga4gh/drs/v1/objects/1234)
+echo "$out"
+
 echo "Killing uwsgi"
 kill %1
 
