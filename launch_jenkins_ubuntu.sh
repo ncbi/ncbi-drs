@@ -67,7 +67,7 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless shellcheck
+             git openjdk-11-jre-headless shellcheck jq
 
 #awscli uwsgi-core
 #apache2 libapache2-mod-wsgi-py3

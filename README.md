@@ -4,7 +4,7 @@ A serverless (AWS Lambda) Flask (Python3.8) implementation of GA4GH's Data
 Repository Service (DRS).
 
 # Pre-commit
-pip3 install pre-commit
+pip3 install -r requirements.txt
 ~/.local/bin/pre-commit install
 
 # Pre-commit flight check

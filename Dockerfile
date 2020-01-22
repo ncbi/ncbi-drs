@@ -25,7 +25,8 @@ COPY templates/home.html /var/www/wsgi-scripts/templates/home.html
 RUN chmod 755 /var/www/wsgi-scripts/drs.py \
         /var/www/wsgi-scripts/ga4gh/drs/server.py \
         /var/www/wsgi-scripts/openapi/data_repository_service.swagger.yaml \
-        /var/www/wsgi-scripts/templates/home.html
+        /var/www/wsgi-scripts/templates/home.html \
+        /var/www/wsgi-scripts/
 
 
 COPY wsgi.conf /etc/apache2/mods-enabled/wsgi.conf
@@ -56,3 +57,5 @@ CMD /usr/sbin/apache2ctl -D FOREGROUND
 # Cleanup
 # sudo docker rm -f $(sudo docker ps -a -q)
 # sudo docker rmi $(sudo docker images -q)
+# docker container prune -f
+# docker image prune -a -f

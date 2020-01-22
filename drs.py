@@ -2,22 +2,24 @@
 
 import connexion
 import logging
+import os
 import sys
 from flask import render_template
 
 # import getpass
 
 sys.path.append("/var/www/wsgi-scripts/")
+# sys.path.append(".")
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-f_handler = logging.FileHandler("drs_app.log")
+f_handler = logging.FileHandler("/tmp/drs_app.log")
 f_handler.setLevel(logging.DEBUG)
 f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
 
-logger.info("logging started")
+logger.info(f"logging started: {__name__}")
 # logging.basicConfig(level=logging.INFO)
 
 # Create the application instance
@@ -26,16 +28,18 @@ options = {
     "swagger_ui": False,
 }  # Don't show swagger console
 
+os.environ["APIKEYINFO_FUNC"] = "ga4gh.drs.server.apikey_auth"
+
 app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
 # Read the swagger.yml file to configure the endpoints
-app.add_api("data_repository_service.swagger.yaml", strict_validation=True)
+app.add_api("data_repository_service.swagger.yaml", strict_validation=False)
 
 application = app.app
 
 
 def basic_auth(username, password, required_scopes=None):
-    logger.warn(f"basic_auth {username} {password}")
+    logger.info(f"basic_auth {username} {password}")
     if username == "admin" and password == "secret":
         return {"sub": "admin"}
 
@@ -44,8 +48,14 @@ def basic_auth(username, password, required_scopes=None):
 
 
 def get_secret(user) -> str:
-    logger.warn(f"get_secret {user}")
+    logger.info(f"get_secret {user}")
     return "You are {user} and the secret is 'wbevuec'".format(user=user)
+
+
+def apikey_auth(token, required_scopes):
+    logger.info(f"Main Got apikey {token}")
+    ok = {"uid": 100}
+    return ok
 
 
 # Create a URL route in our application for "/"
@@ -57,12 +67,15 @@ def home():
     :return:        the rendered template 'home.html'
     """
     username = "Apache"  # getpass.getuser()
-    logger.warn(f"Got {username}")
+    logger.info(f"Got {username}")
+    logger.info(f"headers is {connexion.request.headers}")
+    logger.info(f"params is {connexion.request.json}")
+    logger.info(f"query is {connexion.request.args}")
     # connexion.request.method
     return render_template("home.html", title="DRS", username=username)
 
 
 # If we're running in stand alone mode, run the application
 if __name__ == "__main__":
-    logger.warning("in main")
+    logger.info("in main")
     app.run(port=4772, debug=True)
