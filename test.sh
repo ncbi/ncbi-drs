@@ -44,6 +44,6 @@ echo "$out"
 #docker exec -it "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
 
 echo "Killing docker image"
-#docker kill "$CID"
+docker kill "$CID"
 
 exit $RET
