@@ -1,9 +1,12 @@
 import connexion
 import logging
 import datetime
+import requests
 
 # from connexion import NoContent
 from flask import make_response, abort
+
+SDL_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve/repository/remote/main/SDL.2/resolver-cgi"
 
 
 def get_timestamp():
@@ -23,8 +26,18 @@ def GetObject(object_id: str, expand: bool):
     logging.info(f"In GetObject {object_id} {expand}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
+
     ret = {}
-    ret["id"] = "id goes here"
+
+    # Fake request
+    sdl = requests.get(SDL_CGI)
+    ret["status"] = sdl.status_code
+    ret["text"] = sdl.text
+    ret["json"] = sdl.json()
+    ret["sdl_message"] = sdl.json()["message"]
+
+    ret["id"] = f"id goes here: {object_id}"
+    ret["expanded"] = f"expand={expand}"
     ret["self_uri"] = "http://example.com"
     ret["size"] = 12345
     ret["created_time"] = "1990-12-31T23:59:60Z"

@@ -14,8 +14,10 @@ if [[ -z ${GIT_COMMIT+x} ]]; then
 fi
 
 PORT=$((RANDOM+1024))
+LOG="/tmp/uwsgi_$USER.log"
+rm -f "$LOG"
 #~/.local/bin/uwsgi --http ":$PORT" --wsgi-file drs.py &
-uwsgi --logto uwsgi.log --http ":$PORT" --wsgi-file drs.py &
+uwsgi --logto "$LOG" --http ":$PORT" --wsgi-file drs.py &
 
 sleep 2
 RET=0
@@ -42,5 +44,8 @@ kill %1
 # Run mock server
 # connexion run openapi/data_repository_service.swagger.yaml --mock=all -v
 
+if [[ "$RET" -ne 0 ]]; then
+    echo "See $LOG for details"
+fi
 
 exit $RET
