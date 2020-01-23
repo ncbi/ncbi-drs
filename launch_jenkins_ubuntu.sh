@@ -67,7 +67,8 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless shellcheck jq
+             git openjdk-11-jre-headless shellcheck jq \
+             protobuf-compiler
 
 #awscli uwsgi-core
 #apache2 libapache2-mod-wsgi-py3
@@ -79,7 +80,7 @@ sudo systemctl start jenkins
 pip3 install connexion python_dateutil setuptools \
              flask_testing coverage \
              nose pluggy py randomize black pylint pre-commit \
-             uwsgi &
+             uwsgi protobuf &
 
 pip3 install -U uwsgi # Redundant?
 

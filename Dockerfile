@@ -8,7 +8,7 @@ RUN apt-get -q update -y && apt-get -q -y upgrade && apt-get -q -y install pytho
 
 RUN pip3 -q install connexion python_dateutil setuptools \
              flask_testing coverage \
-             nose pluggy py randomize black pylint
+             nose pluggy py randomize black pylint protobuf
 
 # Copy python script to /var/www/html
 # Add to /etc/apache2/mods-enabled/mod-wsgi.conf
