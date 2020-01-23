@@ -55,9 +55,9 @@ def GetObject(object_id: str, expand: bool):
 
     # Fake request
     sdl = requests.get(SDL_CGI)
-    ret["status"] = sdl.status_code
-    ret["text"] = sdl.text
-    ret["json"] = sdl.json()
+    ret["sdl_status"] = sdl.status_code
+    ret["sdl_text"] = sdl.text
+    ret["sdl_json"] = sdl.json()
     ret["sdl_message"] = sdl.json()["message"]
 
     ret["id"] = f"id goes here: {object_id}"
@@ -65,7 +65,7 @@ def GetObject(object_id: str, expand: bool):
     ret["self_uri"] = "http://example.com"
     ret["size"] = 12345
     ret["created_time"] = "1990-12-31T23:59:60Z"
-    valid_sums = [
+    valid_checksums = [
         "sha-256",
         "sha-512",
         "sha3-256",
@@ -77,6 +77,9 @@ def GetObject(object_id: str, expand: bool):
         "sha1",
     ]
     csum = {"checksum": "FFFFFFF", "type": "crc32c"}
+    if csum["type"] not in valid_checksums:
+        logging.error("invalid checksum " + csum["type"])
+
     ret["checksums"] = [csum]
 
     # Optional fields
