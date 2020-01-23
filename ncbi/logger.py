@@ -21,3 +21,7 @@
 #  Please cite the author in any work or product based on this material.
 #
 # =============================================================================
+
+import logging
+import google.protobuf
+import pb.ncbi.ncbi_log_pb2  # TODO

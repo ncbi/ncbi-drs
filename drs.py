@@ -40,6 +40,12 @@ f_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message
 f_handler.setFormatter(f_format)
 logger.addHandler(f_handler)
 
+if "NCBI_LOGGER" in os.environ:
+    from ncbi import logger
+
+    logger.addHandler()
+
+
 logger.info(f"logging started: {__name__}")
 # logging.basicConfig(level=logging.INFO)
 
