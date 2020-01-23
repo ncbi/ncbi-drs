@@ -32,6 +32,29 @@ from flask import make_response, abort
 
 SDL_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve/repository/remote/main/SDL.2/resolver-cgi"
 
+VALID_CHECKSUMS = [
+    "sha-256",
+    "sha-512",
+    "sha3-256",
+    "sha3-512",
+    "md5",
+    "etag",
+    "crc32c",
+    "trunc512",
+    "sha1",
+]
+
+VALID_ACCESS_METHODS = [
+    "s3",
+    "gs",
+    "ftp",
+    "gsiftp",
+    "globus",
+    "htsget",
+    "https",
+    "file",
+]
+
 
 def get_timestamp():
     d = datetime.datetime.utcnow()
@@ -53,6 +76,8 @@ def GetObject(object_id: str, expand: bool):
 
     ret = {}
 
+    # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
+
     # Fake request
     sdl = requests.get(SDL_CGI)
     ret["sdl_status"] = sdl.status_code
@@ -65,19 +90,8 @@ def GetObject(object_id: str, expand: bool):
     ret["self_uri"] = "http://example.com"
     ret["size"] = 12345
     ret["created_time"] = "1990-12-31T23:59:60Z"
-    valid_checksums = [
-        "sha-256",
-        "sha-512",
-        "sha3-256",
-        "sha3-512",
-        "md5",
-        "etag",
-        "crc32c",
-        "trunc512",
-        "sha1",
-    ]
     csum = {"checksum": "FFFFFFF", "type": "crc32c"}
-    if csum["type"] not in valid_checksums:
+    if csum["type"] not in VALID_CHECKSUMS:
         logging.error("invalid checksum " + csum["type"])
 
     ret["checksums"] = [csum]
@@ -98,6 +112,11 @@ def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"In GetAccessURL {object_id} {access_id}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
+
+    ret = {}
+
+    # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
+    # TODO: Confirm access_id is in VALID_ACCESS_METHODS (connexion does?)
     ret["self_uri"] = "http://gohere"
     ret["headers"] = ["foo", "bar"]
 

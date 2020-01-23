@@ -54,7 +54,8 @@ os.environ["APIKEYINFO_FUNC"] = "ga4gh.drs.server.apikey_auth"
 app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
 # Read the swagger.yml file to configure the endpoints
-app.add_api("data_repository_service.swagger.yaml", strict_validation=False)  # FIXME
+# TODO: validate=True
+app.add_api("data_repository_service.swagger.yaml", strict_validation=False)
 
 application = app.app
 
