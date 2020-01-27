@@ -52,7 +52,9 @@ message strides_log {
     uint64 cnt=9;
     string acc=10;
     string source=11;
-    string version=12;
-    string phid=13;
+    string msg=12;
 // NB: First 15 fields require one less byte to encode, make them common.
+    string phid=16;
+    string sessid=17;
+    string version=18;
 }

@@ -21,7 +21,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
     syntax="proto3",
     serialized_options=None,
     serialized_pb=_b(
-        '\n\x13ncbi/ncbi_log.proto"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\r"\xeb\x02\n\x0bstrides_log\x12\x19\n\x05start\x18\x01 \x01(\x0b\x32\n.Timestamp\x12\x17\n\x03\x65nd\x18\x02 \x01(\x0b\x32\n.Timestamp\x12\n\n\x02ip\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\r\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12#\n\x04\x63mds\x18\x06 \x03(\x0e\x32\x15.strides_log.HTTP_Cmd\x12\x11\n\tbytecount\x18\x07 \x01(\x04\x12\r\n\x05\x61gent\x18\x08 \x01(\t\x12\x0b\n\x03\x63nt\x18\t \x01(\x04\x12\x0b\n\x03\x61\x63\x63\x18\n \x01(\t\x12\x0e\n\x06source\x18\x0b \x01(\t\x12\x0f\n\x07version\x18\x0c \x01(\t\x12\x0c\n\x04phid\x18\r \x01(\t"l\n\x08HTTP_Cmd\x12\x07\n\x03GET\x10\x00\x12\x08\n\x04HEAD\x10\x01\x12\x08\n\x04POST\x10\x02\x12\x07\n\x03PUT\x10\x03\x12\n\n\x06\x44\x45LETE\x10\x04\x12\x0b\n\x07\x43ONNECT\x10\x05\x12\x0b\n\x07OPTIONS\x10\x06\x12\t\n\x05TRACE\x10\x07\x12\t\n\x05PATCH\x10\x08\x62\x06proto3'
+        '\n\x13ncbi/ncbi_log.proto"+\n\tTimestamp\x12\x0f\n\x07seconds\x18\x01 \x01(\x03\x12\r\n\x05nanos\x18\x02 \x01(\r"\x88\x03\n\x0bstrides_log\x12\x19\n\x05start\x18\x01 \x01(\x0b\x32\n.Timestamp\x12\x17\n\x03\x65nd\x18\x02 \x01(\x0b\x32\n.Timestamp\x12\n\n\x02ip\x18\x03 \x01(\t\x12\x0e\n\x06status\x18\x04 \x01(\r\x12\x0e\n\x06\x64omain\x18\x05 \x01(\t\x12#\n\x04\x63mds\x18\x06 \x03(\x0e\x32\x15.strides_log.HTTP_Cmd\x12\x11\n\tbytecount\x18\x07 \x01(\x04\x12\r\n\x05\x61gent\x18\x08 \x01(\t\x12\x0b\n\x03\x63nt\x18\t \x01(\x04\x12\x0b\n\x03\x61\x63\x63\x18\n \x01(\t\x12\x0e\n\x06source\x18\x0b \x01(\t\x12\x0b\n\x03msg\x18\x0c \x01(\t\x12\x0c\n\x04phid\x18\x10 \x01(\t\x12\x0e\n\x06sessid\x18\x11 \x01(\t\x12\x0f\n\x07version\x18\x12 \x01(\t"l\n\x08HTTP_Cmd\x12\x07\n\x03GET\x10\x00\x12\x08\n\x04HEAD\x10\x01\x12\x08\n\x04POST\x10\x02\x12\x07\n\x03PUT\x10\x03\x12\n\n\x06\x44\x45LETE\x10\x04\x12\x0b\n\x07\x43ONNECT\x10\x05\x12\x0b\n\x07OPTIONS\x10\x06\x12\t\n\x05TRACE\x10\x07\x12\t\n\x05PATCH\x10\x08\x62\x06proto3'
     ),
 )
 
@@ -62,8 +62,8 @@ _STRIDES_LOG_HTTP_CMD = _descriptor.EnumDescriptor(
     ],
     containing_type=None,
     serialized_options=None,
-    serialized_start=324,
-    serialized_end=432,
+    serialized_start=353,
+    serialized_end=461,
 )
 _sym_db.RegisterEnumDescriptor(_STRIDES_LOG_HTTP_CMD)
 
@@ -331,8 +331,8 @@ _STRIDES_LOG = _descriptor.Descriptor(
             file=DESCRIPTOR,
         ),
         _descriptor.FieldDescriptor(
-            name="version",
-            full_name="strides_log.version",
+            name="msg",
+            full_name="strides_log.msg",
             index=11,
             number=12,
             type=9,
@@ -352,7 +352,43 @@ _STRIDES_LOG = _descriptor.Descriptor(
             name="phid",
             full_name="strides_log.phid",
             index=12,
-            number=13,
+            number=16,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="sessid",
+            full_name="strides_log.sessid",
+            index=13,
+            number=17,
+            type=9,
+            cpp_type=9,
+            label=1,
+            has_default_value=False,
+            default_value=_b("").decode("utf-8"),
+            message_type=None,
+            enum_type=None,
+            containing_type=None,
+            is_extension=False,
+            extension_scope=None,
+            serialized_options=None,
+            file=DESCRIPTOR,
+        ),
+        _descriptor.FieldDescriptor(
+            name="version",
+            full_name="strides_log.version",
+            index=14,
+            number=18,
             type=9,
             cpp_type=9,
             label=1,
@@ -376,7 +412,7 @@ _STRIDES_LOG = _descriptor.Descriptor(
     extension_ranges=[],
     oneofs=[],
     serialized_start=69,
-    serialized_end=432,
+    serialized_end=461,
 )
 
 _STRIDES_LOG.fields_by_name["start"].message_type = _TIMESTAMP

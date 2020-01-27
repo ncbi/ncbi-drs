@@ -45,5 +45,6 @@ echo "$out"
 
 echo "Killing docker image"
 docker kill "$CID"
+docker container rm "$CID"
 
 exit $RET
