@@ -19,6 +19,7 @@ sudo chmod ugo+w /var/run/docker.sock
 ### Build the dockerfile
 
 ```
+git <this/repo>
 cd <this/directory>
 docker build .
 ```
@@ -39,3 +40,5 @@ docker run -v /var/run/docker.sock:/var/run/docker.sock ...
 ```
 
 Jenkins will run docker commands using host docker daemon.
+
+### See: [Using Docker-in-Docker for your CI or testing environment? Think twice.](http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
