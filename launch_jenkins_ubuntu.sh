@@ -55,6 +55,12 @@ nohup shutdown -P +$EXPIRES > /tmp/shutdown_out 2>&1  &
 
 sleep 50 # Wait for cloud-init updater to finish
 
+# Add swap
+fallocate -l 1G /swap
+chmod 600 /swap
+mkswap /swap
+swapon /swap
+
 # Install LTS version of Jenkins
 wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
 sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
