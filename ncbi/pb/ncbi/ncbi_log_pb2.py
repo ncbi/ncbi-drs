@@ -405,7 +405,7 @@ _STRIDES_LOG = _descriptor.Descriptor(
     ],
     extensions=[],
     nested_types=[],
-    enum_types=[_STRIDES_LOG_HTTP_CMD,],
+    enum_types=[_STRIDES_LOG_HTTP_CMD],
     serialized_options=None,
     is_extendable=False,
     syntax="proto3",

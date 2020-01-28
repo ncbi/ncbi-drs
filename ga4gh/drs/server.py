@@ -23,9 +23,10 @@
 # =============================================================================
 
 import connexion
-import logging
 import datetime
+import logging
 import requests
+import unittest
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -123,6 +124,16 @@ def GetAccessURL(object_id: str, access_id: str):
     return ret
 
 
+class TestServer(unittest.TestCase):
+    # TODO: Not very useful without rest of HTTP/Connexion framework
+    def test_Bogus(self):
+        self.assertTrue(True)
+
+
 def read():
     logging.info(f"In read()")
     return []
+
+
+if __name__ == "__main__":
+    unittest.main()
