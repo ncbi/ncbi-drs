@@ -16,6 +16,7 @@ NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}"
 # Unit tests
 echo "Running unit tests"
 python -m unittest ga4gh/drs/server.py
+nosetests
 echo "Unit tests complete"
 
 echo "Running docker image $NAME, listening on host port $PORT"
