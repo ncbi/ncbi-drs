@@ -51,6 +51,7 @@ CMD /usr/sbin/apache2ctl -D FOREGROUND
 # CAn also docker create and then docker start
 # sudo docker run -it image-id bash # debugging
 # sudo docker ps # Shows "running" containers
+# docker exec -it container-id bash # Attach to running container
 # docker commit goes from container back to image
 
 

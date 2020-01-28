@@ -21,22 +21,15 @@ sudo chmod ugo+w /var/run/docker.sock
 ```
 git <this/repo>
 cd <this/directory>
-docker build .
+docker build -t jenkins .
 ```
 
 Note: you *should* see an error about the docker daemon not running.
 
-### Test that fake docker-in-docker is working
-
-```
-docker run -v /var/run/docker.sock:/var/run/docker.sock docker info
-```
-The output should look the same as if you ran `docker info` directly on the host.
-
 ### Start Jenkins docker for real
 
 ```
-docker run -v /var/run/docker.sock:/var/run/docker.sock ...
+docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins
 ```
 
 Jenkins will run docker commands using host docker daemon.
