@@ -31,7 +31,7 @@ import unittest
 # from connexion import NoContent
 from flask import make_response, abort
 
-SDL_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve/repository/remote/main/SDL.2/resolver-cgi"
+SDL_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
 
 VALID_CHECKSUMS = [
     "sha-256",
@@ -79,18 +79,14 @@ def GetObject(object_id: str, expand: bool):
 
     # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
 
-    # Fake request
-    sdl = requests.get(SDL_CGI)
+    sdl = requests.post(
+        SDL_CGI, data={"acc": "SRR10039049", "accept-proto": "https", "filetype": "bam"}
+    )
+    #    sdl = requests.post(SDL_CGI)
     ret["sdl_status"] = sdl.status_code
-    ret["sdl_text"] = sdl.text
     ret["sdl_json"] = sdl.json()
-    ret["sdl_message"] = sdl.json()["message"]
+    # ret["sdl_result"] = sdl.json()["result"]
 
-    ret["id"] = f"id goes here: {object_id}"
-    ret["expanded"] = f"expand={expand}"
-    ret["self_uri"] = "http://example.com"
-    ret["size"] = 12345
-    ret["created_time"] = "1990-12-31T23:59:60Z"
     csum = {"checksum": "FFFFFFF", "type": "crc32c"}
     if csum["type"] not in VALID_CHECKSUMS:
         logging.error("invalid checksum " + csum["type"])
@@ -98,13 +94,13 @@ def GetObject(object_id: str, expand: bool):
     ret["checksums"] = [csum]
 
     # Optional fields
-    ret["name"] = "name goes here"
-    ret["updated_time"] = get_timestamp()
-    ret["version"] = "version"
-    ret["mime_type"] = "application/json"
-    ret["access_methods"] = ["https", "s3", "gs"]
-    ret["description"] = "description"
-    ret["aliases"] = "aliases"
+    # ret["name"] = "name goes here"
+    # ret["updated_time"] = get_timestamp()
+    # ret["version"] = "version"
+    # ret["mime_type"] = "application/json"
+    # ret["access_methods"] = ["https", "s3", "gs"]
+    # ret["description"] = "description"
+    # ret["aliases"] = "aliases"
 
     return ret
 
