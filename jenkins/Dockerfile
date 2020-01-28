@@ -14,7 +14,9 @@ RUN apt-get -q update -y && \
 
 RUN pip3 -q install connexion python_dateutil setuptools \
              flask_testing coverage \
-             nose pluggy py randomize black pylint protobuf
+             nose pluggy py randomize black pylint pre-commit \
+             uwsgi protobuf &
+
 
 RUN wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | apt-key add -
 RUN sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'

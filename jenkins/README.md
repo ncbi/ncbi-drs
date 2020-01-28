@@ -21,6 +21,7 @@ sudo chmod ugo+w /var/run/docker.sock
 ```
 git <this/repo>
 cd <this/directory>
+# scp ~vartanianmh/jenkins_drs.tar ec2user@ip:ncbi-drs/jenkins
 docker build -t jenkins .
 ```
 
@@ -32,6 +33,6 @@ Note: you *should* see an error about the docker daemon not running.
 docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins
 ```
 
-Jenkins will run docker commands using host docker daemon.
+Jenkins should now be running on http://1.2.3.4:443/
 
 ### See: [Using Docker-in-Docker for your CI or testing environment? Think twice.](http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
