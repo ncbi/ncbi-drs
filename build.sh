@@ -2,6 +2,10 @@
 set -euo pipefail
 shopt -s nullglob globstar
 
+type -a protoc
+type -a black
+type -a pylint
+
 protoc --python_out=ncbi/pb ncbi/ncbi_log.proto
 
 #pre-commit run --all-files
