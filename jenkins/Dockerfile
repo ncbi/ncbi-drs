@@ -33,7 +33,7 @@ USER jenkins
 RUN mkdir -p /var/lib/jenkins/jobs/ncbi-drs/
 #COPY config.xml /var/lib/jenkins/jobs/config.xml
 
-COPY jenkins_drs.tar /tmp/jenkins.tar
+COPY jenkins.tar /tmp/jenkins.tar
 
 USER root
 RUN  chmod go+r /tmp/jenkins.tar && cd /var/lib && tar -xf /tmp/jenkins.tar

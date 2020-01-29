@@ -46,6 +46,6 @@ docker build -t jenkins -f jenkins/Dockerfile .
 docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins
 ```
 
-Jenkins should now be running on http://1.2.3.4:443/
+Jenkins should now be running on http://$IP_ADDR:443/
 
 ### See: [Using Docker-in-Docker for your CI or testing environment? Think twice.](http://jpetazzo.github.io/2015/09/03/do-not-use-docker-in-docker-for-ci/)
