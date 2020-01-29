@@ -4,7 +4,7 @@
 # Monitor via https://fs.ncbi.nlm.nih.gov/adfs/ls/idpinitiatedsignon
 
 if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "Call get_saml_credential.sh and export"
+    echo "Call get_saml_credential.sh and paste the exports"
     exit
 fi
 
@@ -149,6 +149,10 @@ scp ./*require*.txt "$login@$ip_addr:/tmp/"
 ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
 scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:ncbi-drs/jenkins.tar"
 ssh -2akx "$login@$ip_addr" 'pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt'
-ssh -2akx "$login@$ip_addr" 'cd ncbi-drs && pre-commit install'
+ssh -2akx "$login@$ip_addr" 'cd ncbi-drs && ~/.local/bin/pre-commit install'
 
 echo "ssh -2akx $login@$ip_addr"
+echo "Run:"
+echo " docker build -t jenkins -f jenkins/Dockerfile ."
+echo " docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins & "
+echo "Jenkins should be running on http://$ip_addr:443/"

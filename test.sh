@@ -13,12 +13,6 @@ fi
 PORT=$((RANDOM+1024))
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}"
 
-# Unit tests
-echo "Running unit tests"
-python3 -m unittest ga4gh/drs/server.py
-nosetests
-echo "Unit tests complete"
-
 echo "Running docker image $NAME, listening on host port $PORT"
 docker run -t --name "$NAME" -p $PORT:80 drs &
 sleep 5

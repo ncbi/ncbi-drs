@@ -16,6 +16,12 @@ fi
 PORT=$((RANDOM+1024))
 LOG="/tmp/uwsgi_$USER.log"
 rm -f "$LOG"
+
+# Unit tests
+echo "Running unit tests"
+python3 -m unittest ga4gh/drs/server.py
+nosetests
+
 #~/.local/bin/uwsgi --http ":$PORT" --wsgi-file drs.py &
 uwsgi --logto "$LOG" --http ":$PORT" --wsgi-file drs.py &
 
@@ -47,5 +53,7 @@ kill %1
 if [[ "$RET" -ne 0 ]]; then
     echo "See $LOG for details"
 fi
+
+echo "Unit tests complete"
 
 exit $RET

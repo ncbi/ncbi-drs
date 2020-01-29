@@ -6,7 +6,7 @@ type -a protoc
 type -a black
 type -a pylint
 
-pip3 install -r requirements.txt -r test-requirements.txt
+# pip3 install -r requirements.txt -r test-requirements.txt
 
 protoc --python_out=ncbi/pb ncbi/ncbi_log.proto
 
