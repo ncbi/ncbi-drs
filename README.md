@@ -2,8 +2,8 @@
 
 An implementation of GA4GH's Data Repository Service (DRS).
 
-# Pre-commit
-pip3 install -r requirements.txt
+# Python prerequisites
+pip3 install -r requirements.txt -r test-requirements.txt
 ~/.local/bin/pre-commit install
 
 # Pre-commit flight check

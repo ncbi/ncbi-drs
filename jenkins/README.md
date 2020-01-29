@@ -1,12 +1,20 @@
 # EC2 Setup
 
-Bring up a basic AMI, e.g. amzn2-ami-hvm-2.0.20191217.0-x86_64-gp2 (ami-062f7200baf2fa504)
+Bring up an Ubuntu 18.04 AMI on an x86_64 instance with at
+least 1GB of memory.
+I suggest t3a.micro.
+
+launch_ubuntu_jenkins.sh will do all this from NCBI.
 
 ### Run:
 ```
-sudo amazon-linux-extras install docker
-sudo service docker start
-sudo usermod -aG docker ec2-user
+sudo apt-get update -y
+
+sudo apt-get upgrade -y
+
+sudo apt-get install -y docker.io python3 python3-pip \
+             git openjdk-11-jre-headless shellcheck jq \
+             protobuf-compiler
 ```
 Log out and back in. Run `docker info` to verify docker is up and running.
 
@@ -14,18 +22,22 @@ Log out and back in. Run `docker info` to verify docker is up and running.
 
 ```
 sudo chmod ugo+w /var/run/docker.sock
-```
+sudo usermod -aG docker ubuntu
+export IP_ADDR="ec2 ip address of your instance"
+scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:/tmp/jenkins.tar"
 
 ### Build the dockerfile
 
 ```
-git <this/repo>
-cd <this/directory>
-# scp ~vartanianmh/jenkins_drs.tar ec2user@ip:ncbi-drs/jenkins
-docker build -t jenkins .
-```
+ssh -a2kx "ubuntu@$IP_ADDR"
+git clone https://github.com/ncbi/ncbi-drs/
+git checkout VDB-####
+pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
+cd ncbi-drs/jenkins
+~/.local/bin/pre-commit install
 
-Note: you *should* see an error about the docker daemon not running.
+docker build -t jenkins .
+
 
 ### Start Jenkins docker for real
 

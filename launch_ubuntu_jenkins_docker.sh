@@ -61,38 +61,21 @@ chmod 600 /swap
 mkswap /swap
 swapon /swap
 
-# Install LTS version of Jenkins
-wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | sudo apt-key add -
-sudo sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
-
 sudo apt-mark hold linux-image-generic linux-aws \
     grub-common grub-pc grub-pc-bin grub2-common
 
 sudo apt-get update -y
-
 sudo apt-get upgrade -y
-
 sudo apt-get install -y docker.io python3 python3-pip \
              git openjdk-11-jre-headless shellcheck jq \
              protobuf-compiler
 
-#awscli uwsgi-core
-#apache2 libapache2-mod-wsgi-py3
-
-sudo apt-get install -y jenkins
-
-sudo systemctl start jenkins
-
-sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
-sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 80 -j REDIRECT --to-port 8080
+#sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
+#sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 80 -j REDIRECT --to-port 8080
 
 
 sudo usermod -aG docker ubuntu
-sudo usermod -aG docker jenkins
-
-
-#cat /var/lib/jenkins//secrets/initialAdminPassword
-
+sudo chmod ugo+w /var/run/docker.socks
 ENDSCRIPT
 readonly b64json=$(base64 -w 0 "$script")
 
@@ -164,12 +147,8 @@ done
 sleep 240
 scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:/tmp/jenkins.tar"
 scp ./*require*.txt "$login@$ip_addr:/tmp/"
-ssh -2akx "$login@$ip_addr" 'pip3 install -r requirements.txt -r test-requirements.txt'
-ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
-ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
-ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'
 ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
-
+ssh -2akx "$login@$ip_addr" 'pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt'
+ssh -2akx "$login@$ip_addr" 'cd ncbi-drs && pre-commit install'
 
 echo "ssh -2akx $login@$ip_addr"
-echo "Jenkins should be running on http://$ip_addr"
