@@ -27,11 +27,13 @@ import datetime
 import logging
 import requests
 import unittest
+import re
 
 # from connexion import NoContent
 from flask import make_response, abort
 
-SDL_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
+SDL_RETRIEVE_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
+SDL_LOCALITY_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/locality"
 
 VALID_CHECKSUMS = [
     "sha-256",
@@ -69,38 +71,116 @@ def apikey_auth(token, required_scopes):
         raise OAuthProblem("Invalid token")
     return ok
 
+def _ParseObjectId(objId: str):
+    type = None
+    vers = None
+    if objId:
+        mtype = re.search(r'\.([^.]+)$', objId)
+        if mtype:
+            type = mtype[1]
+            objId = objId[:-len(mtype[0])]
+        mvers = re.search(r'\.(\d+)$', objId)
+        if mvers:
+            vers = mvers[1]
+            objId = objId[:-len(mvers[0])]
+        elif type and re.match(r'^\d+$', type):
+            (type, vers) = (None, type)
+    return (objId, vers, type)
+
+def _ParseSDLResponseV2(response, query):
+    results = response.get('result')
+    if type(results) != list:
+        logging.error('unexpected result ' + results)
+        return None
+
+    for result in results:
+        bundle = result.get('bundle')
+        if not bundle:
+            logging.error('unexpected result ' + result)
+            return None
+
+        status = result.get('status')
+        if bundle == query['bundle']:
+            if str(status) != '200':
+                return { 'status': str(status), 'msg': result.get('msg') }
+
+            files = result.get('files')
+            if type(files) != list:
+                logging.error('unexpected files ' + files)
+                return None
+
+            for file in files:
+                filetype = file.get('type')
+                if query['type'] in filetype:
+                    locations = file.get('locations')
+                    if type(locations) != list:
+                        logging.error('unexpected locations ' + locations)
+                        return None
+
+                    for location in locations:
+                        service = location.get('service')
+                        region = location.get('region')
+                        return {'status': '200'
+                              , 'msg': result.get('msg')
+                              , 'name': file.get('name')
+                              , 'type': filetype
+                              , 'size': file.get('size')
+                              , 'md5': file.get('md5')
+                              , 'date': file.get('modificationDate')
+                              , 'url': location.get('link')
+                              , 'service': location.get('service')
+                              , 'region': location.get('region')
+                              }
+
+    return { 'status': 404, 'msg': 'not found' }
+
+def _ParseSDLResponse(response, query):
+    version = response.get('version')
+    if version == '2':
+        return _ParseSDLResponseV2(response, query)
+
+    logging.error('unexpected version ' + version)
+    return None
+
+def _GetRedirURL(url: str, service: str, region: str):
+    return url
 
 def GetObject(object_id: str, expand: bool):
     logging.info(f"In GetObject {object_id} {expand}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    ret = {}
+    ret = { 'id': str
+          , 'self_uri': None ###< We should be able to get this, it should be the same url as what triggered this code to run
+          }
 
     # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
+    (acc, vers, type) = _ParseObjectId('SRR10039049.bam') # _ParseObjectId(object_id)
+    params = {'accept-proto': 'https'}
+    params['acc'] = acc + '.' + vers if acc and vers else acc else ''
+    params['filetype'] = type if type is not None else 'bam'
 
-    sdl = requests.post(
-        SDL_CGI, data={"acc": "SRR10039049", "accept-proto": "https", "filetype": "bam"}
-    )
-    #    sdl = requests.post(SDL_CGI)
+    sdl = requests.post(SDL_RETRIEVE_CGI, data=params)
     ret["sdl_status"] = sdl.status_code
     ret["sdl_json"] = sdl.json()
-    # ret["sdl_result"] = sdl.json()["result"]
 
-    csum = {"checksum": "FFFFFFF", "type": "crc32c"}
-    if csum["type"] not in VALID_CHECKSUMS:
-        logging.error("invalid checksum " + csum["type"])
+    res = _ParseSDLResponse(sdl.json())
+    if res and res['status'] == '200':
+        # required fields
 
-    ret["checksums"] = [csum]
+        ret['checksums'] = [{ 'checksum': res['md5'], 'type': 'md5' }]
+        ret['size'] = res['size']
+        ret['created_time'] = res['date']
 
-    # Optional fields
-    # ret["name"] = "name goes here"
-    # ret["updated_time"] = get_timestamp()
-    # ret["version"] = "version"
-    # ret["mime_type"] = "application/json"
-    # ret["access_methods"] = ["https", "s3", "gs"]
-    # ret["description"] = "description"
-    # ret["aliases"] = "aliases"
+        # optional fields
+        if res['name']: ret['name'] = res['name']
+        if vers: ret['version'] = vers
+        access_method = { 'access_url': _GetRedirURL(res['url'], res['service'], res['region']) }
+        if res['service'] == 's3': access_method['type'] = 's3'
+        elif res['service'] == 'gs': access_method['type'] = 'gs'
+        else access_method['type'] = 'https'
+        if res['region']: access_method['region'] = res['region']
+        ret['access_methods'] = [ access_method ]
 
     return ret
 
