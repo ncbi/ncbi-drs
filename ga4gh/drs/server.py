@@ -119,12 +119,30 @@ def GetAccessURL(object_id: str, access_id: str):
 
     return ret
 
+def GetCE():
+    try: # AWS
+        document = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
+        return document
+    except:
+        pass
+
+    try: # GCP
+        document = requests.get("http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.ncbi.nlm.nih.gov&format=full")
+        return document
+    except:
+        pass
+
+    # not on a cloud
+    return ''
 
 class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
     def test_Bogus(self):
         self.assertTrue(True)
 
+    def test_GetCE(self):
+        s = GetCE()
+        self.assertEqual(s, '')
 
 def read():
     logging.info(f"In read()")
