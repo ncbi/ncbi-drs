@@ -37,7 +37,6 @@ docker info # to verify docker is up and running.
 sudo chmod ugo+w /var/run/docker.sock
 sudo usermod -aG docker $USER
 
-git clone https://github.com/ncbi/ncbi-drs/
 cd ncbi-drs/
 git checkout VDB-####
 pip3 -q install -r requirements.txt -r test-requirements.txt
