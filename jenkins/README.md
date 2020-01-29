@@ -24,7 +24,6 @@ Log out and back in. Run `docker info` to verify docker is up and running.
 sudo chmod ugo+w /var/run/docker.sock
 sudo usermod -aG docker ubuntu
 export IP_ADDR="ec2 ip address of your instance"
-scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:/tmp/jenkins.tar"
 
 ### Build the dockerfile
 
@@ -35,6 +34,8 @@ git checkout VDB-####
 pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
 cd ncbi-drs/
 ~/.local/bin/pre-commit install
+
+scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:ncbi-drs/jenkins.tar"
 
 docker build -t jenkins -f jenkins/Dockerfile .
 

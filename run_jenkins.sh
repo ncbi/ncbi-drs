@@ -5,7 +5,7 @@ shopt -s nullglob globstar
 id
 cd /var/lib/jenkins
 pwd
-tar -xf jenkins.tar
+tar -xf ~/ncbi-drs/jenkins.tar
 mkdir -p /var/lib/jenkins/jobs/ncbi-drs
 ls -la
 #cp config.xml /var/lib/jenkins/jobs

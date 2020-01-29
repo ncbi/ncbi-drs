@@ -145,9 +145,9 @@ do
 done
 
 sleep 240
-scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:/tmp/jenkins.tar"
 scp ./*require*.txt "$login@$ip_addr:/tmp/"
 ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
+scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:ncbi-drs/jenkins.tar"
 ssh -2akx "$login@$ip_addr" 'pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt'
 ssh -2akx "$login@$ip_addr" 'cd ncbi-drs && pre-commit install'
 

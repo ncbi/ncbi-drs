@@ -15,7 +15,7 @@ RUN apt-get -q update -y && \
 COPY ./ ./
 #COPY requirements.txt /tmp/requirements.txt
 #COPY test-requirements.txt /tmp/test-requirements.txt
-RUN pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
+RUN pip3 -q install -r requirements.txt -r test-requirements.txt
 
 RUN wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | apt-key add -
 RUN sh -c 'echo deb http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
@@ -33,7 +33,7 @@ USER jenkins
 RUN mkdir -p /var/lib/jenkins/jobs/ncbi-drs/
 #COPY config.xml /var/lib/jenkins/jobs/config.xml
 
-COPY /tmp/jenkins_drs.tar /tmp/jenkins.tar
+COPY jenkins_drs.tar /tmp/jenkins.tar
 
 USER root
 RUN  chmod go+r /tmp/jenkins.tar && cd /var/lib && tar -xf /tmp/jenkins.tar

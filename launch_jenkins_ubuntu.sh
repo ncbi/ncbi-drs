@@ -162,11 +162,11 @@ do
 done
 
 sleep 240
-scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:/tmp/jenkins.tar"
+scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:ncbi-drs/jenkins.tar"
 scp ./*require*.txt "$login@$ip_addr:/tmp/"
 ssh -2akx "$login@$ip_addr" 'pip3 install -r requirements.txt -r test-requirements.txt'
-ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r /tmp/jenkins.tar'
-ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf /tmp/jenkins.tar'
+ssh -2akx "$login@$ip_addr" 'sudo service jenkins stop && chmod go+r ~/ncbi-drs/jenkins.tar'
+ssh -2akx "$login@$ip_addr" 'cd /var/lib && sudo -u jenkins tar -xf ~/ncbi-drs/jenkins.tar'
 ssh -2akx "$login@$ip_addr" 'sudo service jenkins start'
 ssh -2akx "$login@$ip_addr" 'git clone https://github.com/ncbi/ncbi-drs/'
 
