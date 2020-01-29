@@ -4,9 +4,12 @@ Bring up an Ubuntu 18.04 AMI on an x86_64 instance with at
 least 1GB of memory.
 I suggest t3a.micro.
 
-launch_ubuntu_jenkins_docker.sh will do all this from NCBI.
+./launch_ubuntu_jenkins_docker.sh will do all this from NCBI.
 
 export IP_ADDR="ec2 ip address of your instance"
+
+On EC2, $USER is "ubuntu".
+On GCP, $USER is your username.
 
 ### Run:
 ```
@@ -15,12 +18,12 @@ sudo apt-get update -y
 sudo apt-get upgrade -y
 
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless shellcheck jq \
+             git shellcheck jq \
              protobuf-compiler
 ```
 ### Log out and back in.
 ```
-ssh -a2kx "$USER@$IP_ADDR" 'mkdir ncbi-drs'
+ssh -2akx "$USER@$IP_ADDR" 'git clone https://github.com/ncbi/ncbi-drs/'
 scp /home/vartanianmh/jenkins_drs.tar "$USER@$IP_ADDR:ncbi-drs/jenkins.tar"
 ssh -a2kx "$USER@$IP_ADDR"
 docker info # to verify docker is up and running.
@@ -34,8 +37,8 @@ sudo usermod -aG docker $USER
 
 git clone https://github.com/ncbi/ncbi-drs/
 git checkout VDB-####
-pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
 cd ncbi-drs/
+pip3 -q install -r requirements.txt -r test-requirements.txt
 ~/.local/bin/pre-commit install
 
 docker build -t jenkins -f jenkins/Dockerfile .

@@ -67,7 +67,7 @@ sudo apt-mark hold linux-image-generic linux-aws \
 sudo apt-get update -y
 sudo apt-get upgrade -y
 sudo apt-get install -y docker.io python3 python3-pip \
-             git openjdk-11-jre-headless shellcheck jq \
+             git shellcheck jq \
              protobuf-compiler
 
 #sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 80 -j REDIRECT --to-port 8080
