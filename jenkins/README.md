@@ -20,9 +20,9 @@ sudo apt-get install -y docker.io python3 python3-pip \
 ```
 ### Log out and back in.
 ```
-ssh -a2kx "ubuntu@$IP_ADDR" 'mkdir ncbi-drs'
-scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:ncbi-drs/jenkins.tar"
-ssh -a2kx "ubuntu@$IP_ADDR"
+ssh -a2kx "$USER@$IP_ADDR" 'mkdir ncbi-drs'
+scp /home/vartanianmh/jenkins_drs.tar "$USER@$IP_ADDR:ncbi-drs/jenkins.tar"
+ssh -a2kx "$USER@$IP_ADDR"
 docker info # to verify docker is up and running.
 ```
 
@@ -30,7 +30,7 @@ docker info # to verify docker is up and running.
 
 ```
 sudo chmod ugo+w /var/run/docker.sock
-sudo usermod -aG docker ubuntu
+sudo usermod -aG docker $USER
 
 git clone https://github.com/ncbi/ncbi-drs/
 git checkout VDB-####
