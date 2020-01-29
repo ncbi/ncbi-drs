@@ -1,6 +1,6 @@
 # Jenkins in docker
 
-tl/dr;
+tl;dr
 
 Run docker with **`-v /var/run/docker.sock:/var/run/docker.sock`** to forward docker-in-docker to the host.
 
