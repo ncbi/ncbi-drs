@@ -159,13 +159,13 @@ def GetObject(object_id: str, expand: bool):
     (acc, vers, type) = _ParseObjectId('SRR10039049.bam') # _ParseObjectId(object_id)
     params = {'accept-proto': 'https'}
     params['acc'] = acc + '.' + vers if acc and vers else acc else ''
-    params['filetype'] = type if type is not None else 'bam'
+    params['filetype'] = type if type else 'bam'
 
     sdl = requests.post(SDL_RETRIEVE_CGI, data=params)
     ret["sdl_status"] = sdl.status_code
     ret["sdl_json"] = sdl.json()
 
-    res = _ParseSDLResponse(sdl.json())
+    res = _ParseSDLResponse(sdl.json(), {'bundle': params['acc'], 'type': params['filetype']})
     if res and res['status'] == '200':
         # required fields
 
