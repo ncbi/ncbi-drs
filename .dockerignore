@@ -10,3 +10,5 @@ dist/
 build/
 *.egg-info/
 drs_app.log
+launch_ubuntu_jenkins_docker.sh
+launch_jenkins_ubuntu.sh

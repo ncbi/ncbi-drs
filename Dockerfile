@@ -4,7 +4,11 @@ FROM ubuntu:latest
 LABEL author="Mike Vartanian"
 MAINTAINER mike.vartanian@nih.gov
 
-RUN apt-get -q update -y && apt-get -q -y upgrade && apt-get -q -y install python3 apache2 libapache2-mod-wsgi-py3 python3-pip
+RUN apt-get -q update -y && \
+    apt-get -q -y upgrade && \
+    apt-get -q -y install python3 apache2 \
+            libapache2-mod-wsgi-py3 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
 COPY test-requirements.txt /tmp/test-requirements.txt
