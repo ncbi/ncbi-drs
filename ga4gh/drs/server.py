@@ -95,14 +95,15 @@ def _ParseSDLResponseV2(response, query):
 
     for result in results:
         bundle = result.get('bundle')
-        if not bundle:
+        status = result.get('status')
+        if not bundle or not status:
             logging.error('unexpected result ' + result)
             return None
 
-        status = result.get('status')
+        status = str(status)
         if bundle == query['bundle']:
-            if str(status) != '200':
-                return { 'status': str(status), 'msg': result.get('msg') }
+            if status != '200':
+                return { 'status': status, 'msg': result.get('msg') }
 
             files = result.get('files')
             if type(files) != list:
