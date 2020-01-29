@@ -33,10 +33,10 @@ ssh -a2kx "ubuntu@$IP_ADDR"
 git clone https://github.com/ncbi/ncbi-drs/
 git checkout VDB-####
 pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
-cd ncbi-drs/jenkins
+cd ncbi-drs/
 ~/.local/bin/pre-commit install
 
-docker build -t jenkins .
+docker build -t jenkins -f jenkins/Dockerfile .
 
 
 ### Start Jenkins docker for real

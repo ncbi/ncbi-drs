@@ -12,8 +12,9 @@ RUN apt-get -q update -y && \
              shellcheck jq protobuf-compiler docker.io \
              git openjdk-11-jre-headless wget
 
-COPY requirements.txt /tmp/requirements.txt
-COPY test-requirements.txt /tmp/test-requirements.txt
+COPY ./ ./
+#COPY requirements.txt /tmp/requirements.txt
+#COPY test-requirements.txt /tmp/test-requirements.txt
 RUN pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
 
 RUN wget -q -O - https://pkg.jenkins.io/debian/jenkins.io.key | apt-key add -
@@ -30,9 +31,9 @@ RUN service jenkins stop
 USER jenkins
 
 RUN mkdir -p /var/lib/jenkins/jobs/ncbi-drs/
-COPY config.xml /var/lib/jenkins/jobs/config.xml
+#COPY config.xml /var/lib/jenkins/jobs/config.xml
 
-COPY jenkins_drs.tar /tmp/jenkins.tar
+COPY /tmp/jenkins_drs.tar /tmp/jenkins.tar
 
 USER root
 RUN  chmod go+r /tmp/jenkins.tar && cd /var/lib && tar -xf /tmp/jenkins.tar
