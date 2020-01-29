@@ -152,7 +152,7 @@ def GetObject(object_id: str, expand: bool):
     logging.info(f"query is {connexion.request.args}")
 
     ret = { 'id': object_id
-          , 'self_uri': None ###< We should be able to get this, it should be the same url as what triggered this code to run
+          , 'self_uri': connexion.request.url ###< this might not be right
           }
 
     # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
