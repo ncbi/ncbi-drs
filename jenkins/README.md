@@ -1,5 +1,9 @@
 # Jenkins in docker
 
+tl/dr;
+
+Run docker with **`-v /var/run/docker.sock:/var/run/docker.sock`** to forward docker-in-docker to the host.
+
 ## EC2 Setup
 
 Starting with a basic AMI, e.g. amzn2-ami-hvm-2.0.20191217.0-x86_64-gp2 (ami-062f7200baf2fa504)
