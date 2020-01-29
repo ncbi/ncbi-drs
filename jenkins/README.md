@@ -18,7 +18,13 @@ sudo apt-get install -y docker.io python3 python3-pip \
              git openjdk-11-jre-headless shellcheck jq \
              protobuf-compiler
 ```
-Log out and back in. Run `docker info` to verify docker is up and running.
+### Log out and back in.
+```
+ssh -a2kx "ubuntu@$IP_ADDR" 'mkdir ncbi-drs'
+scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:ncbi-drs/jenkins.tar"
+ssh -a2kx "ubuntu@$IP_ADDR"
+docker info # to verify docker is up and running.
+```
 
 ### Build the dockerfile:
 
@@ -26,9 +32,6 @@ Log out and back in. Run `docker info` to verify docker is up and running.
 sudo chmod ugo+w /var/run/docker.sock
 sudo usermod -aG docker ubuntu
 
-ssh -a2kx "ubuntu@$IP_ADDR" 'mkdir ncbi-drs'
-scp /home/vartanianmh/jenkins_drs.tar "ubuntu@$IP_ADDR:ncbi-drs/jenkins.tar"
-ssh -a2kx "ubuntu@$IP_ADDR"
 git clone https://github.com/ncbi/ncbi-drs/
 git checkout VDB-####
 pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
