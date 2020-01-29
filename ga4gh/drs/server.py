@@ -150,7 +150,7 @@ def GetObject(object_id: str, expand: bool):
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    ret = { 'id': str
+    ret = { 'id': object_id
           , 'self_uri': None ###< We should be able to get this, it should be the same url as what triggered this code to run
           }
 
