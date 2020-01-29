@@ -3,7 +3,8 @@
 * Bring up an Ubuntu 18.04 AMI on an x86_64 instance with at
 least 1GB of memory.
   * I suggest t3a.micro.
-  * Make sure you allow ports 22, 80 and 443
+  * Make sure you allow ports 22, 80 and 443 (default for GCP and many NCBI
+                                              security groups)
 
 `./launch_ubuntu_jenkins_docker.sh` will do all this from NCBI.
 
