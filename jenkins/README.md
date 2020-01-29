@@ -26,7 +26,7 @@ sudo apt-get install -y docker.io python3 python3-pip \
 ### Log out and back in.
 ```bash
 ssh -2akx "$USER@$IP_ADDR" 'git clone https://github.com/ncbi/ncbi-drs/'
-scp /home/vartanianmh/jenkins_drs.tar "$USER@$IP_ADDR:ncbi-drs/jenkins.tar"
+scp /home/vartanianmh/jenkins_drs.tar "$USER@$IP_ADDR:ncbi-drs/jenkins.tar" # TODO
 ssh -a2kx "$USER@$IP_ADDR"
 docker info # to verify docker is up and running.
 ```
@@ -38,7 +38,7 @@ sudo chmod ugo+w /var/run/docker.sock
 sudo usermod -aG docker $USER
 
 cd ncbi-drs/
-git checkout VDB-####
+git checkout VDB-####  # TODO: remove when master branch useful
 pip3 -q install -r requirements.txt -r test-requirements.txt
 ~/.local/bin/pre-commit install
 

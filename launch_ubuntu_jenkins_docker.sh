@@ -151,8 +151,12 @@ scp /home/vartanianmh/jenkins_drs.tar "$login@$ip_addr:ncbi-drs/jenkins.tar"
 ssh -2akx "$login@$ip_addr" 'pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt'
 ssh -2akx "$login@$ip_addr" 'cd ncbi-drs && ~/.local/bin/pre-commit install'
 
-echo "ssh -2akx $login@$ip_addr"
+BRANCH_NAME=$(git symbolic-ref --short HEAD)
+
 echo "Run:"
+echo " ssh -2akx $login@$ip_addr"
+echo " cd ncbi-drs"
+echo " git checkout $BRANCH_NAME"
 echo " docker build -t jenkins -f jenkins/Dockerfile ."
 echo " docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins & "
-echo "Jenkins should be running on http://$ip_addr:443/"
+echo " and then Jenkins should be running on http://$ip_addr:443/"
