@@ -36,8 +36,8 @@ sudo chmod ugo+w /var/run/docker.sock
 sudo usermod -aG docker $USER
 
 git clone https://github.com/ncbi/ncbi-drs/
-git checkout VDB-####
 cd ncbi-drs/
+git checkout VDB-####
 pip3 -q install -r requirements.txt -r test-requirements.txt
 ~/.local/bin/pre-commit install
 
