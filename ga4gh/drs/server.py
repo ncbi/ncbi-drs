@@ -191,14 +191,7 @@ def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    ret = {}
-
-    # TODO: Confirm object_id matches [A-Za-z0-9.-_~]+
-    # TODO: Confirm access_id is in VALID_ACCESS_METHODS (connexion does?)
-    ret["self_uri"] = "http://gohere"
-    ret["headers"] = ["foo", "bar"]
-
-    return ret
+    return {'message': 'GetAccessURL is unused'}, 401 ###< this might not be right
 
 
 class TestServer(unittest.TestCase):
