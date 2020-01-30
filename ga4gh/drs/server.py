@@ -169,7 +169,6 @@ def GetCE():
             return doc_b64 + "." + pkcs7_b64
 
     except:
-        printf("AWS threw")
         pass
 
     try:  # GCP
