@@ -14,8 +14,8 @@ PORT=$((RANDOM+1024))
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
 echo "Running docker image $NAME, listening on host port $PORT"
-docker run --name "$NAME" -p $PORT:80 drs &
-sleep 10
+docker run -d --name "$NAME" -p $PORT:80 drs
+sleep 2
 
 CID=$(docker ps -q --filter "name=$NAME")
 echo "container is $CID"
@@ -24,11 +24,12 @@ RET=0
 echo curl -s http://localhost:$PORT/
 set +e
 out=$(curl -s http://localhost:$PORT/ || true)
-echo "curl returned $?"
+CURLRET=$?
 
 if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
 else
+    echo "curl returned $CURLRET"
     echo "Failed: '$out'"
     RET=1
 fi
