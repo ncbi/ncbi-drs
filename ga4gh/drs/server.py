@@ -164,7 +164,7 @@ def _GetAccessMethod(res):
     access_method = { 'access_url': _GetRedirURL(res['url'], res['service'], res['region']) }
     if res['service'] == 's3': access_method['type'] = 's3'
     elif res['service'] == 'gs': access_method['type'] = 'gs'
-    else access_method['type'] = 'https'
+    else: access_method['type'] = 'https'
     if res['region']: access_method['region'] = res['region']
     return access_method
 
@@ -183,12 +183,12 @@ def GetObject(object_id: str, expand: bool):
     # ???: Confirm object_id matches [A-Za-z0-9.-_~]+
     (acc, vers, type) = _ParseObjectId('SRR10039049.bam') # _ParseObjectId(object_id)
     params = {'accept-proto': 'https'}
-    params['acc'] = acc + '.' + vers if acc and vers else acc else ''
+    params['acc'] = acc + '.' + vers if acc and vers else acc if acc else ''
     params['filetype'] = type if type else 'bam'
 
     hdrs = {}
     cet = _GetComputeEnvironmentToken()
-    if cet: hdrs{'ident'} = cet
+    if cet: hdrs['ident'] = cet
 
     sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
     ret["sdl_status"] = sdl.status_code
