@@ -22,7 +22,7 @@ echo "container is $CID"
 
 RET=0
 echo curl -s http://localhost:$PORT/
-out=$(curl -s http://localhost:$PORT/) || true
+out=$(curl -s http://localhost:$PORT/ || true)
 echo "curl returned $?"
 
 if [[ "$out" =~ "Hello, Apache!" ]]; then
