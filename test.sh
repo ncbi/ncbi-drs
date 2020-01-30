@@ -15,7 +15,7 @@ NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
 echo "Running docker image $NAME, listening on host port $PORT"
 docker run -d --name "$NAME" -p $PORT:80 drs
-sleep 2
+sleep 15
 
 CID=$(docker ps -q --filter "name=$NAME")
 echo "container is $CID"
@@ -23,8 +23,10 @@ echo "container is $CID"
 RET=0
 echo curl -s http://localhost:$PORT/
 set +e
+date
 out=$(curl -s http://localhost:$PORT/ || true)
 CURLRET=$?
+date
 
 if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
