@@ -14,7 +14,7 @@ PORT=$((RANDOM+1024))
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
 echo "Running docker image $NAME, listening on host port $PORT"
-docker run -it --name "$NAME" -p $PORT:80 drs &
+docker run --name "$NAME" -p $PORT:80 drs &
 sleep 10
 
 CID=$(docker ps -q --filter "name=$NAME")
@@ -39,7 +39,7 @@ echo "Received: '$out'"
 if [[ "$RET" -ne 0 ]]; then
     echo "Logs"
     echo "----"
-    docker exec -it "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
+    docker exec -t "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
     echo "----"
 fi
 
