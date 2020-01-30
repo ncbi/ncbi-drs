@@ -302,6 +302,7 @@ class TestServer(unittest.TestCase):
         HOST = "169.254.169.254"
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.100)
             sock.connect((HOST, 80))
             sock.close()
             return True
