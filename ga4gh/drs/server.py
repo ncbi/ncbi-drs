@@ -121,31 +121,26 @@ def GetAccessURL(object_id: str, access_id: str):
     return ret
 
 
-def OnGCP():
-    HOSTNAME = "metadata"
-    try:
-        HOST = socket.gethostbyname(HOSTNAME)
-        return True
-    except:
-        return False
-
-
-def OnAWS():
-    return False
-
-
 def GetCE():
+    """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
+       The CE token is to be sent to SDL as "ident=<CEtoken>" in the body of a POST request.
+
+       Parameters
+       ----------
+       none
+
+       Returns
+       -------
+       CE token as a string if on a cloud, or an empty string if not on a cloud.
+    """
+
     try:  # AWS
-        print("AWS")
-        document = requests.get(
-            "http://169.254.169.254/latest/dynamic/instance-identity/document"
-        )
+        AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
+        document = requests.get(AWS_INSTANCE_URL + "/document")
         if document.status_code == requests.codes.ok:
-            print("AWS:", document.text)
-            return document.text
-        print("status=", document.status_code)
+            pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
+            return document.text + "." + pkcs7.text
     except:
-        print("GET threw")
         pass
 
     try:  # GCP
@@ -163,18 +158,52 @@ def GetCE():
     return ""
 
 
+# --------------------- Unit tests
+
+
 class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
-    def test_Bogus(self):
-        self.assertTrue(True)
+
+    def OnGCP(self):
+        HOSTNAME = "metadata"
+        try:
+            HOST = socket.gethostbyname(HOSTNAME)
+            return True
+        except:
+            return False
+
+    def OnAWS(self):
+        HOST = "169.254.169.254"
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((HOST, 80))
+            sock.close()
+            return True
+        except:
+            return False
+
+    # test cases
+
+    def test_GetCE_docstring(self):
+        # make sure has a docstring
+        self.assertTrue(GetCE.__doc__)
 
     def test_GetCE(self):
+        # output on the current platform
         s = GetCE()
-        if OnGCP():
+
+        if self.OnGCP():
+            # an instance identity token, base64url-encoded
             self.assertNotEqual(s, "")
-        elif OnAWS():
+
+        elif self.OnAWS():
+            # an Instance Identity Document (Json) followed by "." and a pkcs7 signature
             self.assertNotEqual(s, "")
+            self.assertEqual(s[0], "{")
+            self.assertNotEqual(s.find("}."), -1)
+
         else:
+            # neither AWS nor GCP: empty
             self.assertEqual(s, "")
 
 
