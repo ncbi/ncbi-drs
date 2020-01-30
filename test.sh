@@ -22,13 +22,14 @@ echo "container is $CID"
 
 RET=0
 echo curl -s http://localhost:$PORT/
+set +e
 out=$(curl -s http://localhost:$PORT/ || true)
 echo "curl returned $?"
 
 if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
 else
-    echo "Failed: $out"
+    echo "Failed: '$out'"
     docker exec -t "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
     RET=1
 fi
