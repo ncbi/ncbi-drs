@@ -167,7 +167,7 @@ class TestServer(unittest.TestCase):
     def OnGCP(self):
         HOSTNAME = "metadata"
         try:
-            HOST = socket.gethostbyname(HOSTNAME)
+            socket.gethostbyname(HOSTNAME)
             return True
         except:
             return False
@@ -180,6 +180,7 @@ class TestServer(unittest.TestCase):
             sock.close()
             return True
         except:
+            sock.close()
             return False
 
     # test cases
