@@ -38,15 +38,15 @@ fi
 #echo "$out"
 
 out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/1234 | jq -S '.')
-echo "$out"
+echo "Received: '$out'"
 
 #out=$(curl -s -H 'X-Auth: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/1234)
 #echo "$out"
 
 #docker exec -it "$NAME" /usr/bin/tail -20 /tmp/drs_app.log
 #docker exec -it "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
-exit 0
 echo "Killing docker image"
+exit 0
 docker kill "$CID"
 docker container rm "$CID"
 
