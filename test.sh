@@ -29,7 +29,7 @@ if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
 else
     echo "Failed: $out"
-    docker exec -it "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
+    docker exec -t "$NAME" /usr/bin/tail -n 20 /var/log/apache2/error.log /tmp/drs_app.log
     RET=1
 fi
 
