@@ -48,7 +48,7 @@ docker build -t jenkins -f jenkins/Dockerfile .
 ### Start Jenkins docker for real
 
 ```bash
-docker run -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins &
+docker run -d -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins
 ```
 
 Jenkins should now be running on http://$IP_ADDR:443/
