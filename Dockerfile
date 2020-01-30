@@ -7,7 +7,7 @@ MAINTAINER mike.vartanian@nih.gov
 RUN apt-get -q update -y && \
     apt-get -q -y upgrade && \
     apt-get -q -y install python3 apache2 \
-            libapache2-mod-wsgi-py3 python3-pip && \
+            libapache2-mod-wsgi-py3 python3-pip jq protobuf-compiler && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /tmp/requirements.txt
