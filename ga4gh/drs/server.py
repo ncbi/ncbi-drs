@@ -28,6 +28,7 @@ import logging
 import requests
 import unittest
 import socket
+import base64
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -121,6 +122,25 @@ def GetAccessURL(object_id: str, access_id: str):
     return ret
 
 
+# ------------- Computing Environment
+
+
+def Base64(val):
+    """ Applies Base64 encoding to a string
+
+       Parameters
+       ----------
+       val : string to be encoded
+
+       Returns
+       -------
+       base64-encoded val
+   """
+
+    b64 = base64.b64encode(val.encode("utf-8"))
+    return str(b64, "utf-8")
+
+
 def GetCE():
     """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
        The CE token is to be sent to SDL as "ident=<CEtoken>" in the body of a POST request.
@@ -131,16 +151,25 @@ def GetCE():
 
        Returns
        -------
-       CE token as a string if on a cloud, or an empty string if not on a cloud.
+       CE token as a string if on a cloud, or None if not on a cloud.
     """
 
     try:  # AWS
         AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
+
         document = requests.get(AWS_INSTANCE_URL + "/document")
         if document.status_code == requests.codes.ok:
+            # encode the components
+            doc_b64 = Base64(document.text)
             pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
-            return document.text + "." + pkcs7.text
+            pkcs7_b64 = Base64(
+                "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
+            )
+
+            return doc_b64 + "." + pkcs7_b64
+
     except:
+        printf("AWS threw")
         pass
 
     try:  # GCP
@@ -155,7 +184,7 @@ def GetCE():
         pass
 
     # not on a cloud
-    return ""
+    return None
 
 
 # --------------------- Unit tests
@@ -198,14 +227,12 @@ class TestServer(unittest.TestCase):
             self.assertNotEqual(s, "")
 
         elif self.OnAWS():
-            # an Instance Identity Document (Json) followed by "." and a pkcs7 signature
-            self.assertNotEqual(s, "")
-            self.assertEqual(s[0], "{")
-            self.assertNotEqual(s.find("}."), -1)
+            # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
+            self.assertNotEqual(s.find("."), -1)
 
         else:
             # neither AWS nor GCP: empty
-            self.assertEqual(s, "")
+            self.assertEqual(s, None)
 
 
 def read():
