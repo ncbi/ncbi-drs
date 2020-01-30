@@ -27,6 +27,7 @@ import datetime
 import logging
 import requests
 import unittest
+import socket
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -119,21 +120,48 @@ def GetAccessURL(object_id: str, access_id: str):
 
     return ret
 
-def GetCE():
-    try: # AWS
-        document = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document")
-        return document
+
+def OnGCP():
+    HOSTNAME = "metadata"
+    try:
+        HOST = socket.gethostbyname(HOSTNAME)
+        return True
     except:
+        return False
+
+
+def OnAWS():
+    return False
+
+
+def GetCE():
+    try:  # AWS
+        print("AWS")
+        document = requests.get(
+            "http://169.254.169.254/latest/dynamic/instance-identity/document"
+        )
+        if document.status_code == requests.codes.ok:
+            print("AWS:", document.text)
+            return document.text
+        print("status=", document.status_code)
+    except:
+        print("GET threw")
         pass
 
-    try: # GCP
-        document = requests.get("http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=https://www.ncbi.nlm.nih.gov&format=full")
-        return document
+    try:  # GCP
+        GCP_CE_URL = (
+            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
+            "?audience=https://www.ncbi.nlm.nih.gov&format=full"
+        )
+        document = requests.get(GCP_CE_URL, headers={"Metadata-Flavor": "Google"})
+        if document.status_code == requests.codes.ok:
+            return document.text
     except:
         pass
 
     # not on a cloud
-    return ''
+    return ""
+
 
 class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
@@ -142,7 +170,13 @@ class TestServer(unittest.TestCase):
 
     def test_GetCE(self):
         s = GetCE()
-        self.assertEqual(s, '')
+        if OnGCP():
+            self.assertNotEqual(s, "")
+        elif OnAWS():
+            self.assertNotEqual(s, "")
+        else:
+            self.assertEqual(s, "")
+
 
 def read():
     logging.info(f"In read()")
