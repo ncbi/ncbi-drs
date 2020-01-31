@@ -79,7 +79,6 @@ def _ParseObjectId(objId: str):
     type = None
     vers = None
     if objId:
-        m_id = re.search(r'^([^.]+)(.*)', objId)
         mtype = re.search(r'\.([^.]+)$', objId)
         if mtype:
             type = mtype[1]
