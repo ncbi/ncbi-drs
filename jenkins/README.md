@@ -49,6 +49,9 @@ docker build -t jenkins -f jenkins/Dockerfile .
 
 ```bash
 docker run -d -v /var/run/docker.sock:/var/run/docker.sock -p 443:8080 jenkins
+
+sudo iptables -A PREROUTING -t nat -i eth0 -p tcp --dport 443 -j REDIRECT --to-port 8080
+sudo iptables -A PREROUTING -t nat -i ens5 -p tcp --dport 443 -j REDIRECT --to-port 8080
 ```
 
 Jenkins should now be running on http://$IP_ADDR:443/

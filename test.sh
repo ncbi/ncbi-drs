@@ -26,7 +26,7 @@ echo "container is $CID"
 set +e
 RET=0
 echo curl -s http://localhost:$PORT/
-curl -s http://localhost:$PORT/
+#curl -s http://localhost:$PORT/
 out=$(curl -s http://localhost:$PORT/ || true)
 CURLRET=$?
 
@@ -39,7 +39,12 @@ else
 fi
 
 out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/1234 | jq -S '.')
-echo "Received: '$out'"
+if [[ "$out" =~ "FFFFFFF" ]]; then
+    echo "OK"
+else
+    echo "Test failed: $out"
+    RET=1
+fi
 
 if [[ "$RET" -ne 0 ]]; then
     echo "Logs"
