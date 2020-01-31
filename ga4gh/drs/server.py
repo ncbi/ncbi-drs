@@ -522,6 +522,11 @@ class TestServer(unittest.TestCase):
         self.assertIsNotNone(res)
         self.assertEqual(res['status'], '500')
 
+    def test_ParseSDLResponse_empty(self):
+        responseText = "{}"
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'foo', 'type': 'bam'})
+        self.assertIsNone(res)
+
 
 def read():
     logging.info(f"In read()")
