@@ -2,6 +2,6 @@
 set -euo pipefail
 shopt -s nullglob globstar
 
-docker build -t drs .
+docker build --pull --no-cache --tag drs .
 
 exit 0
