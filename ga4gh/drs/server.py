@@ -30,6 +30,7 @@ import unittest
 import re
 import socket
 import base64
+import json
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -153,7 +154,12 @@ def _ParseSDLResponse(response, query):
     if version == '2':
         return _ParseSDLResponseV2(response, query)
 
-    logging.error('unexpected version ' + version)
+    status = response.get('status')
+    msg = response.get('message')
+    if not msg: msg = response.get('msg')
+    if status:
+        return { 'status': str(status), 'msg': msg }
+
     return None
 
 def _GetRedirURL(url: str, service: str, region: str):
@@ -196,7 +202,7 @@ def GetObject(object_id: str, expand: bool):
 
     res = _ParseSDLResponse(sdl.json(), {'bundle': params['acc'], 'type': params['filetype']})
     if not res:
-        logging.error('unexpected response ' + sdl.json())
+        logging.error('unexpected response ' + sdl.text)
     elif res['status'] == '200':
         # MARK: required fields
         ret['checksums'] = [{ 'checksum': res['md5'], 'type': 'md5' }]
@@ -387,6 +393,134 @@ class TestServer(unittest.TestCase):
         self.assertEqual(base, 'SRR000001')
         self.assertIsNone(vers)
         self.assertEqual(type, 'bam')
+
+    def test_ParseSDLResponse_1(self):
+        responseText = """
+{
+    "version": "2",
+    "result": [
+        {
+            "bundle": "SRR10039049",
+            "status": 200,
+            "msg": "ok",
+            "files": [
+                {
+                    "object": "remote|SRR10039049",
+                    "type": "bam/gzip",
+                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
+                    "size": 2299145289,
+                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
+                    "modificationDate": "2019-08-30T15:21:11Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR10039049/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+"""
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'SRR10039049', 'type': 'bam'})
+        self.assertIsNotNone(res)
+        self.assertEqual(res['status'], '200')
+        self.assertEqual(res['md5'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
+        self.assertIsNotNone(res.get('url'))
+        self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
+        self.assertEqual(res['service'], 's3')
+
+    def test_ParseSDLResponse_version(self):
+        responseText = """
+{
+    "version": "unstable",
+    "result": [
+        {
+            "bundle": "SRR10039049",
+            "status": 200,
+            "msg": "ok",
+            "files": [
+                {
+                    "object": "remote|SRR10039049",
+                    "type": "bam/gzip",
+                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
+                    "size": 2299145289,
+                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
+                    "modificationDate": "2019-08-30T15:21:11Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR10039049/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+"""
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'SRR10039049', 'type': 'bam'})
+        self.assertIsNone(res)
+
+    def test_ParseSDLResponse_404(self):
+        responseText = """
+{
+    "version": "2",
+    "result": [
+        {
+            "bundle": "SRR10039049",
+            "status": 404,
+            "msg": "Cannot resolve accession"
+        }
+    ]
+}
+"""
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'SRR10039049', 'type': 'bam'})
+        self.assertIsNotNone(res)
+        self.assertNotEqual(res['status'], '200')
+
+    def test_ParseSDLResponse_not_found(self):
+        responseText = """
+{
+    "version": "2",
+    "result": [
+        {
+            "bundle": "SRR10039049",
+            "status": 200,
+            "msg": "ok",
+            "files": [
+                {
+                    "object": "remote|SRR10039049",
+                    "type": "bam/gzip",
+                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
+                    "size": 2299145289,
+                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
+                    "modificationDate": "2019-08-30T15:21:11Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR10039049/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+"""
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'foo', 'type': 'bam'})
+        self.assertIsNotNone(res)
+        self.assertEqual(res['status'], '404')
+
+    def test_ParseSDLResponse_500(self):
+        responseText = """{"status": 500, "message": "No accession to process"}"""
+        res = _ParseSDLResponse(json.loads(responseText), { 'bundle': 'foo', 'type': 'bam'})
+        self.assertIsNotNone(res)
+        self.assertEqual(res['status'], '500')
 
 
 def read():
