@@ -328,6 +328,7 @@ def GetCE():
 
 # --------------------- Unit tests
 
+_verbose = None
 
 class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
@@ -350,14 +351,17 @@ class TestServer(unittest.TestCase):
 
         if self.OnGCP():
             # an instance identity token, base64url-encoded
+            if _verbose: print('GCP detected')
             self.assertNotEqual(s, "")
 
         elif self.OnAWS():
             # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
+            if _verbose: print('AWS detected')
             self.assertNotEqual(s.find("."), -1)
 
         else:
             # neither AWS nor GCP: empty
+            if _verbose: print('no cloud detected')
             self.assertEqual(s, None)
 
 
@@ -365,6 +369,7 @@ def read():
     logging.info(f"In read()")
     return []
 
-
+import sys
 if __name__ == "__main__":
+    _verbose = ('--verbose' in sys.argv)
     unittest.main()
