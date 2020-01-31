@@ -14,9 +14,8 @@ PORT=$((RANDOM+1024))
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
 echo "Running docker image $NAME, listening on host port $PORT"
-docker run -d --name "$NAME" -p $PORT:80 drs
+docker run --network=host -d --name "$NAME" -p $PORT:80 drs
 sleep 15
-docker ps
 
 CID=$(docker ps -q --filter "name=$NAME")
 echo "container is $CID"
