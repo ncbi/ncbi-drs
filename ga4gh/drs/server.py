@@ -238,6 +238,65 @@ def Base64(val):
     b64 = base64.b64encode(val.encode("utf-8"))
     return str(b64, "utf-8")
 
+def _GetCloud():
+    def OnGCP():
+        HOSTNAME = "metadata"
+        try:
+            socket.gethostbyname(HOSTNAME)
+            return True
+        except:
+            return False
+
+    def OnAWS():
+        HOST = "169.254.169.254"
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.100)
+            sock.connect((HOST, 80))
+            sock.close()
+            return True
+        except:
+            sock.close()
+            return False
+
+    if OnGCP(): return 'gcp'
+    if OnAWS(): return 'aws'
+    return None
+
+_cloud = _GetCloud()
+
+def _GetAWS_CE():
+    try:  # AWS
+        AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
+
+        document = requests.get(AWS_INSTANCE_URL + "/document")
+        if document.status_code == requests.codes.ok:
+            # encode the components
+            doc_b64 = Base64(document.text)
+            pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
+            pkcs7_b64 = Base64(
+                "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
+            )
+
+            return doc_b64 + "." + pkcs7_b64
+    except:
+        pass
+
+    return None
+
+def _GetGCP_CE():
+    try:  # GCP
+        GCP_CE_URL = (
+            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
+            "?audience=https://www.ncbi.nlm.nih.gov&format=full"
+        )
+        document = requests.get(GCP_CE_URL, headers={"Metadata-Flavor": "Google"})
+        if document.status_code == requests.codes.ok:
+            return document.text
+    except:
+        pass
+
+    return None
 
 def GetCE():
     """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
@@ -252,33 +311,8 @@ def GetCE():
        CE token as a string if on a cloud, or None if not on a cloud.
     """
 
-    try:  # AWS
-        AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
-
-        document = requests.get(AWS_INSTANCE_URL + "/document")
-        if document.status_code == requests.codes.ok:
-            # encode the components
-            doc_b64 = Base64(document.text)
-            pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
-            pkcs7_b64 = Base64(
-                "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
-            )
-
-            return doc_b64 + "." + pkcs7_b64
-
-    except:
-        pass
-
-    try:  # GCP
-        GCP_CE_URL = (
-            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
-            "?audience=https://www.ncbi.nlm.nih.gov&format=full"
-        )
-        document = requests.get(GCP_CE_URL, headers={"Metadata-Flavor": "Google"})
-        if document.status_code == requests.codes.ok:
-            return document.text
-    except:
-        pass
+    if _cloud == 'gcp': return _GetGCP_CE()
+    if _cloud == 'aws': return _GetAWS_CE()
 
     # not on a cloud
     return None
@@ -291,24 +325,10 @@ class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
 
     def OnGCP(self):
-        HOSTNAME = "metadata"
-        try:
-            socket.gethostbyname(HOSTNAME)
-            return True
-        except:
-            return False
+        return _cloud == 'gcp'
 
     def OnAWS(self):
-        HOST = "169.254.169.254"
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.100)
-            sock.connect((HOST, 80))
-            sock.close()
-            return True
-        except:
-            sock.close()
-            return False
+        return _cloud == 'aws'
 
     # test cases
 
