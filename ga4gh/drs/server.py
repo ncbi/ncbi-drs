@@ -364,6 +364,30 @@ class TestServer(unittest.TestCase):
             if _verbose: print('no cloud detected')
             self.assertEqual(s, None)
 
+    def test_ParseObjectId_1(self):
+        (base, vers, type) = _ParseObjectId('SRR000001')
+        self.assertEqual(base, 'SRR000001')
+        self.assertIsNone(vers)
+        self.assertIsNone(type)
+
+    def test_ParseObjectId_2(self):
+        (base, vers, type) = _ParseObjectId('SRR000001.1.bam')
+        self.assertEqual(base, 'SRR000001')
+        self.assertEqual(vers, '1')
+        self.assertEqual(type, 'bam')
+
+    def test_ParseObjectId_3(self):
+        (base, vers, type) = _ParseObjectId('SRR000001.1')
+        self.assertEqual(base, 'SRR000001')
+        self.assertEqual(vers, '1')
+        self.assertIsNone(type)
+
+    def test_ParseObjectId_4(self):
+        (base, vers, type) = _ParseObjectId('SRR000001.bam')
+        self.assertEqual(base, 'SRR000001')
+        self.assertIsNone(vers)
+        self.assertEqual(type, 'bam')
+
 
 def read():
     logging.info(f"In read()")
