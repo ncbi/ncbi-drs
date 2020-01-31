@@ -10,27 +10,25 @@ if [[ -z ${GIT_COMMIT+x} ]]; then
     GIT_COMMIT=$RANDOM
 fi
 
-PORT=$((RANDOM+1024))
+#PORT=$((RANDOM+1024))
+PORT=80
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
 #docker network create test-network
 echo "Running docker image $NAME, listening on host port $PORT"
 #docker run --network test-network --detach --name "$NAME" --publish $PORT:80 drs
 docker run --network host --detach --name "$NAME" drs
-PORT=80
-sleep 15
+sleep 5
 
 CID=$(docker ps -q --filter "name=$NAME")
 echo "container is $CID"
 
 set +e
-date
 RET=0
 echo curl -s http://localhost:$PORT/
 curl -s http://localhost:$PORT/
 out=$(curl -s http://localhost:$PORT/ || true)
 CURLRET=$?
-date
 
 if [[ "$out" =~ "Hello, Apache!" ]]; then
     echo "OK"
@@ -50,11 +48,10 @@ if [[ "$RET" -ne 0 ]]; then
     echo "----"
 fi
 
-
 echo "Killing docker image"
-exit 0
 docker kill "$CID"
 docker container rm "$CID"
 #docker network rm test-network
 
+echo "RET is $RET"
 exit $RET
