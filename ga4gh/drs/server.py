@@ -222,7 +222,6 @@ def GetAccessURL(object_id: str, access_id: str):
 
 # ------------- Computing Environment
 
-
 def Base64(val):
     """ Applies Base64 encoding to a string
 
@@ -238,34 +237,8 @@ def Base64(val):
     b64 = base64.b64encode(val.encode("utf-8"))
     return str(b64, "utf-8")
 
-def _GetCloud():
-    def OnGCP():
-        HOSTNAME = "metadata"
-        try:
-            socket.gethostbyname(HOSTNAME)
-            return True
-        except:
-            return False
-
-    def OnAWS():
-        HOST = "169.254.169.254"
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.100)
-            sock.connect((HOST, 80))
-            sock.close()
-            return True
-        except:
-            sock.close()
-            return False
-
-    if OnGCP(): return 'gcp'
-    if OnAWS(): return 'aws'
-    return None
-
-_cloud = _GetCloud()
-
 def _GetAWS_CE():
+    """ Get Compute Environment for AWS """
     try:  # AWS
         AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
 
@@ -285,6 +258,7 @@ def _GetAWS_CE():
     return None
 
 def _GetGCP_CE():
+    """ Get Compute Environment for GCP """
     try:  # GCP
         GCP_CE_URL = (
             "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
@@ -297,6 +271,44 @@ def _GetGCP_CE():
         pass
 
     return None
+
+def _GetCloud():
+    """ Discover Cloud by trying to access platform-specific metadata
+
+       Parameters
+       ----------
+       none
+
+       Returns
+       -------
+       Function for getting the Compute Environment or None
+    """
+    try:
+        """ GCP has this hostname """
+        HOSTNAME = "metadata"
+        socket.gethostbyname(HOSTNAME)
+        return _GetGCP_CE
+    except:
+        pass
+
+    try:
+        """ Try connecting to AWS metadata server
+            It should connect immediately if in AWS
+        """
+        HOST = "169.254.169.254"
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.100)
+        sock.connect((HOST, 80))
+        sock.close()
+        return _GetAWS_CE
+    except:
+        pass
+    finally:
+        sock.close()
+
+    return None
+
+_cloud = _GetCloud()
 
 def GetCE():
     """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
@@ -311,11 +323,7 @@ def GetCE():
        CE token as a string if on a cloud, or None if not on a cloud.
     """
 
-    if _cloud == 'gcp': return _GetGCP_CE()
-    if _cloud == 'aws': return _GetAWS_CE()
-
-    # not on a cloud
-    return None
+    return _cloud() if _cloud else None
 
 
 # --------------------- Unit tests
@@ -325,10 +333,10 @@ class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
 
     def OnGCP(self):
-        return _cloud == 'gcp'
+        return _cloud == _GetGCP_CE
 
     def OnAWS(self):
-        return _cloud == 'aws'
+        return _cloud == _GetAWS_CE
 
     # test cases
 
