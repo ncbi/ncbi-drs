@@ -13,8 +13,11 @@ fi
 PORT=$((RANDOM+1024))
 NAME="${BRANCH_NAME}_${GIT_COMMIT:0:6}_$RANDOM"
 
+#docker network create test-network
 echo "Running docker image $NAME, listening on host port $PORT"
-docker run --network=host -d --name "$NAME" -p $PORT:80 drs
+#docker run --network test-network --detach --name "$NAME" --publish $PORT:80 drs
+docker run --network host --detach --name "$NAME" drs
+PORT=80
 sleep 15
 
 CID=$(docker ps -q --filter "name=$NAME")
@@ -52,5 +55,6 @@ echo "Killing docker image"
 exit 0
 docker kill "$CID"
 docker container rm "$CID"
+#docker network rm test-network
 
 exit $RET
