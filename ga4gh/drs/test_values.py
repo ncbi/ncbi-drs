@@ -22,7 +22,8 @@
 #
 # =============================================================================
 #
-### @file test-values.py: Provide test values for unit-testing
+
+""" Provide test values for unit-testing of server.py """
 
 response_ok = """
 {
