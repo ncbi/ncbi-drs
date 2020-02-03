@@ -39,7 +39,7 @@ else
 fi
 
 out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/1234 | jq -S '.')
-if [[ "$out" =~ "FFFFFFF" ]]; then
+if [[ "$out" =~ "aa8fbf47c010ee82e783f52f9e7a21d0" ]]; then
     echo "OK"
 else
     echo "Test failed: $out"
