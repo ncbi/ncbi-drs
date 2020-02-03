@@ -4,22 +4,14 @@ FROM ubuntu:latest
 LABEL author="Mike Vartanian"
 MAINTAINER mike.vartanian@nih.gov
 
-RUN apt-get -q update -y && \
-    apt-get -q -y upgrade && \
+RUN apt-get update && \
     apt-get -q -y install python3 apache2 \
-            curl libapache2-mod-wsgi-py3 python3-pip jq protobuf-compiler
-#            && rm -rf /var/lib/apt/lists/*
+                  curl libapache2-mod-wsgi-py3 python3-pip \
+                  jq protobuf-compiler
 
 COPY requirements.txt /tmp/requirements.txt
 COPY test-requirements.txt /tmp/test-requirements.txt
 RUN pip3 -q install -r /tmp/requirements.txt -r /tmp/test-requirements.txt
-
-#RUN pip3 -q install connexion python_dateutil setuptools \
-#             flask_testing coverage \
-#             nose pluggy py randomize black pylint protobuf
-
-# Copy python script to /var/www/html
-# Add to /etc/apache2/mods-enabled/mod-wsgi.conf
 
 RUN echo "Empty" > /var/www/html/index.html
 COPY favicon.ico /var/www/favicon.ico
