@@ -46,11 +46,11 @@ class Rewriter:
         fd.close()
         return urljoin(baseURL, r)
 
-    def retrieve(self, urlString: str):
+    def retrieve(self, shortID: str):
         """ Extract original SDL URL from rewritten URL """
-        j = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.sra.drs.{urlString}.tempurl"))
+        j = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.sra.drs.{shortID}.tempurl"))
         # print(j)
-        return j['from'] if j['to'] == urlString else None
+        return j['from'] if j['to'] == shortID else None
 
 if __name__ == "__main__":
     r = Rewriter()
