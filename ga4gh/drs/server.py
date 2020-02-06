@@ -31,6 +31,7 @@ import re
 import socket
 import base64
 import json
+import hashlib
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -74,24 +75,19 @@ def apikey_auth(token, required_scopes):
         raise OAuthProblem("Invalid token")
     return ok
 
+def _GetRedirURL(location):
+    return location['link']
 
-def _ParseObjectId(objId: str):
-    """ Split up an object id """
-    type = None
-    vers = None
-    if objId:
-        mtype = re.search(r"\.([^.]+)$", objId)
-        if mtype:
-            type = mtype[1]
-            objId = objId[: -len(mtype[0])]
-        mvers = re.search(r"\.(\d+)$", objId)
-        if mvers:
-            vers = mvers[1]
-            objId = objId[: -len(mvers[0])]
-        elif type and re.match(r"^\d+$", type):
-            (type, vers) = (None, type)
-    return (objId, vers, type)
+def _TranslateService(location):
+    try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
+    except: return 'https'
 
+def _MakeAccessMethod(location):
+    """ Create a DRS Access Method from SDL info """
+    access_method = { 'access_url': _GetRedirURL(location), 'type': _TranslateService(location) }
+    if location.get('region'):
+        access_method['region'] = location.get('region')
+    return access_method
 
 ### @brief _ParseSDLResponseV2 Parse version 2 SDL response JSON
 ###
@@ -99,152 +95,192 @@ def _ParseObjectId(objId: str):
 ### @param query: { bundle: accession, type: file type }
 ###
 ### @return None if error else Dictionary with requested object or a 404
-def _ParseSDLResponseV2(response, query):
+def _ParseSDLResponseV2(response, accession: str, file_part: str):
     """ Parse version 2 SDL Response JSON """
-    results = response.get("result")
-    if type(results) != list:
-        logging.error("unexpected result " + results)
-        return None
+    for result in response['result']:
+        if result['bundle'] != accession: continue
 
-    for result in results:
-        bundle = result.get("bundle")
-        status = result.get("status")
-        if not bundle or not status:
-            return None
+        msg = result.get('msg')
+        status = str(result['status'])
+        if status != '200':
+            yield {'status': status, 'msg': msg}
+            return
 
-        status = str(status)
-        if bundle == query["bundle"]:
-            if status != "200":
-                return {"status": status, "msg": result.get("msg")}
+        for file in result['files']:
+            name = file['name']
+            access_methods = None
+            if file_part:
+                if file_part != name: continue
+                access_methods = list(_MakeAccessMethod(location) for location in file['locations'])
 
-            files = result.get("files")
-            if type(files) != list:
-                return None
-
-            for file in files:
-                filetype = file.get("type")
-                if query["type"] in filetype:
-                    locations = file.get("locations")
-                    if type(locations) != list:
-                        return None
-
-                    for location in locations:
-                        return {
-                            "status": "200",
-                            "msg": result.get("msg"),
-                            "name": file.get("name"),
-                            "type": filetype,
-                            "size": file.get("size"),
-                            "md5": file.get("md5"),
-                            "date": file.get("modificationDate"),
-                            "url": location.get("link"),
-                            "service": location.get("service"),
-                            "region": location.get("region"),
-                        }
-
-    return {"status": "404", "msg": "not found"}
-
+            yield {
+                'status': '200',
+                'msg': msg,
+                'id': f"{accession}.{name}",
+                'name': name,
+                'size': file['size'],
+                'md5': file['md5'],
+                'date': file['modificationDate'],
+                'access_methods': access_methods
+            }
 
 ### @brief _ParseSDLResponse Parse SDL response JSON
 ###
 ### @param response: SDL response JSON
-### @param query: { bundle: accession, type: file type }
+### @param accession: the query accession
+### @param file_part: the file part of the query, may be None
 ###
-### @return None if error else Dictionary
-def _ParseSDLResponse(response, query):
+### @return list or raises likely KeyError from missing expected fields
+def _ParseSDLResponse(response, accession: str, file_part: str):
     """ Parse SDL Response JSON """
-    version = response.get("version")
-    if version == "2":
-        return _ParseSDLResponseV2(response, query)
+    version = response.get('version')
+    if version and version == '2':
+        return list(_ParseSDLResponseV2(response, accession, file_part))
 
-    status = response.get("status")
-    msg = response.get("message")
-    if not msg:
-        msg = response.get("msg")
-    if status:
-        return {"status": str(status), "msg": msg}
+    msg = response.get('message')
+    return list({'status': str(response['status']), 'msg': msg if msg else response.get('msg')})
 
-    return None
+def _MD5_SDLResponses(response):
+    m = hashlib.md5()
+    for digest in sorted(x['md5'].encode('ascii') for x in response):
+        m.update(digest)
+    return m.hexdigest()
 
+def _Split_SRA_ID(object_id: str):
+    """ Match SRA accession pattern and split into (useful?) components """
+    m = re.match(r'^([EDS])R([APRSXZ])(\d{6,9})(?:\.(.+)){0,1}', object_id)
+    if m:
+        (issuer, type, serialNo, remainder) = m.groups()
+        return (issuer, type, serialNo, remainder)
+    return (None, None, None, None)
 
-def _GetRedirURL(url: str, service: str, region: str):
-    return url
+def _GetObject(object_id: str, expand: bool, requestURL: str):
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
+    if not issuer:
+        return { 'status_code': 404, 'msg': "Only SRA accessions are available" }, 404
 
+    accession = f"{issuer}R{type}{serialNo}"
 
-def _GetAccessMethod(res):
-    """ Create a DRS Access Method from SDL info """
-    access_method = {
-        "access_url": _GetRedirURL(res["url"], res["service"], res["region"])
+    if type != 'R':
+        return { 'status_code': 501, 'msg': "Only run accessions are implemented" }, 500
+
+    ret = {
+        "id": object_id,
+        "self_uri": requestURL,  ###< this might not be right
     }
-    if res["service"] == "s3":
-        access_method["type"] = "s3"
-    elif res["service"] == "gs":
-        access_method["type"] = "gs"
+
+    params = {'accept-proto': 'https'}
+    params['acc'] = accession
+
+    hdrs = {}
+    cet = GetCE()
+    if cet:
+        hdrs['ident'] = cet
+
+    # MARK: THIS IS TEST CODE
+    if issuer == 'S' and serialNo == '000000': # SRR000000 was never used
+        test_response = """
+{
+    "version": "2",
+    "result": [
+        {
+            "bundle": "SRR000000",
+            "status": 200,
+            "msg": "ok",
+            "files": [
+                {
+                    "object": "remote|SRR000000",
+                    "type": "bam/gzip",
+                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
+                    "size": 2299145289,
+                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
+                    "modificationDate": "2019-08-30T15:21:11Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                },
+                {
+                    "object": "remote|SRR000000",
+                    "type": "bam/gzip",
+                    "name": "f4.m.liv.DMSO1.rna.merged.sorted.bam",
+                    "size": 1128363105,
+                    "md5": "02b1ea5174fee52d14195fd07ece176a",
+                    "modificationDate": "2019-08-30T15:04:29Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.m.liv.DMSO1.rna.merged.sorted.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+        """
+        ret['sdl_status'] = 200
+        ret['sdl_json'] = test_response
+        res = _ParseSDLResponse(json.loads(test_response), accession, file_part)
     else:
-        access_method["type"] = "https"
-    if res["region"]:
-        access_method["region"] = res["region"]
-    return access_method
+        sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
+        ret['sdl_status'] = sdl.status_code
+        ret['sdl_json'] = sdl.json()
 
+        try:
+            res = _ParseSDLResponse(sdl.json(), accession, file_part)
+        except:
+            logging.error("unexpected response from SDL: " + sdl.text)
+            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
 
-def _GetComputeEnvironmentToken():
-    return GetCE()
+    if len(res) == 0:
+        return { 'status_code': 404, 'msg': 'not found' }, 404
 
+    if file_part:
+        if len(res) != 1 or res[0]['id'] != object_id or not res[0]['access_methods'] or len(res[0]['access_methods']) == 0:
+            logging.error("unexpected response from SDL: " + sdl.text)
+            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
+        res = res[0]
+        if res['status'] != '200':
+            return { 'status_code': res['status'], 'msg': res['msg'] }, res['status']
+
+        ret.update({
+                'name': res['name'],
+                'size': res['size'],
+                'checksums': [{'checksum': res['md5'], 'type': 'md5'}],
+                'created_time': res['date'],
+                'access_methods': res['access_methods']
+            })
+        return ret
+    else:
+        if res[0]['status'] != '200':
+            return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }, res[0]['status']
+
+        ret.update({
+            'checksums': [{'checksum': _MD5_SDLResponses(res), 'type': 'md5'}],
+            'size': sum(x['size'] for x in res),
+            'created_time': min(x['date'] for x in res),
+            'contents': list({ 'id': x['id'], 'name': x['name'] } for x in res)
+        })
+        return ret
 
 def GetObject(object_id: str, expand: bool):
     logging.info(f"In GetObject {object_id} {expand}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    ret = {
-        "id": object_id,
-        "self_uri": connexion.request.url,  ###< this might not be right
-    }
-
-    # ???: Confirm object_id matches [A-Za-z0-9.-_~]+
-    (acc, vers, type) = _ParseObjectId("SRR10039049.bam")  # _ParseObjectId(object_id)
-    params = {"accept-proto": "https"}
-    params["acc"] = acc + "." + vers if acc and vers else acc if acc else ""
-    params["filetype"] = type if type else "bam"
-
-    hdrs = {}
-    cet = _GetComputeEnvironmentToken()
-    if cet:
-        hdrs["ident"] = cet
-
-    sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
-    ret["sdl_status"] = sdl.status_code
-    ret["sdl_json"] = sdl.json()
-
-    res = _ParseSDLResponse(
-        sdl.json(), {"bundle": params["acc"], "type": params["filetype"]}
-    )
-    if not res:
-        logging.error("unexpected response " + sdl.text)
-    elif res["status"] == "200":
-        # MARK: required fields
-        ret["checksums"] = [{"checksum": res["md5"], "type": "md5"}]
-        ret["size"] = res["size"]
-        ret["created_time"] = res["date"]
-
-        # MARK: optional fields
-        if res["name"]:
-            ret["name"] = res["name"]
-        if vers:
-            ret["version"] = vers
-
-        # NOTE: this is were the URL is stored
-        ret["access_methods"] = [_GetAccessMethod(res)]
-
-    return ret
-
+    return _GetObject(object_id, expand, connexion.request.url)
 
 def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"In GetAccessURL {object_id} {access_id}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    return {"message": "GetAccessURL is unused"}, 401  ###< this might not be right
+    return {'status_code': 401, 'msg': "GetAccessURL is unused"}, 401  ###< this might not be right
 
 
 # ------------- Computing Environment
@@ -402,84 +438,26 @@ class TestServer(unittest.TestCase):
                 print("no cloud detected")
             self.assertEqual(s, None)
 
-    def test_ParseObjectId_1(self):
-        (base, vers, type) = _ParseObjectId("SRR000001")
-        self.assertEqual(base, "SRR000001")
-        self.assertIsNone(vers)
-        self.assertIsNone(type)
+    def test_Request_for_run(self):
+        res = _GetObject('SRR000000', 1, 'test') # expand doesn't matter, true and false should produce the same result
+        self.assertEqual(res['size'], 2299145289+1128363105)
+        self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
+        self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
+        self.assertIsInstance(res['contents'], list)
+        self.assertEqual(len(res['contents']), 2)
 
-    def test_ParseObjectId_2(self):
-        (base, vers, type) = _ParseObjectId("SRR000001.1.bam")
-        self.assertEqual(base, "SRR000001")
-        self.assertEqual(vers, "1")
-        self.assertEqual(type, "bam")
+    def test_Request_for_file(self):
+        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'test')
+        self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
+        self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
 
-    def test_ParseObjectId_3(self):
-        (base, vers, type) = _ParseObjectId("SRR000001.1")
-        self.assertEqual(base, "SRR000001")
-        self.assertEqual(vers, "1")
-        self.assertIsNone(type)
-
-    def test_ParseObjectId_4(self):
-        (base, vers, type) = _ParseObjectId("SRR000001.bam")
-        self.assertEqual(base, "SRR000001")
-        self.assertIsNone(vers)
-        self.assertEqual(type, "bam")
-
-    def test_ParseSDLResponse_1(self):
-        """ Normal, positive test """
-        res = _ParseSDLResponse(
-            json.loads(test_values.response_ok), {"bundle": "SRR10039049", "type": "bam"}
-        )
-        self.assertIsNotNone(res)
-        self.assertEqual(res["status"], "200")
-        self.assertEqual(res["md5"], "aa8fbf47c010ee82e783f52f9e7a21d0")
-        self.assertIsNotNone(res.get("url"))
-        self.assertEqual(res["name"], "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam")
-        self.assertEqual(res["service"], "s3")
-
-    def test_ParseSDLResponse_version(self):
-        """ response version not recognized """
-        res = _ParseSDLResponse(
-            json.loads(test_values.bad_version), {"bundle": "SRR10039049", "type": "bam"}
-        )
-        self.assertIsNone(res)
-
-    def test_ParseSDLResponse_404(self):
-        """ response to an unknown accession """
-        res = _ParseSDLResponse(
-            json.loads(test_values.response_404), {"bundle": "SRR10039049", "type": "bam"}
-        )
-        self.assertIsNotNone(res)
-        self.assertNotEqual(res["status"], "200")
-
-    def test_ParseSDLResponse_not_found(self):
-        """ look for a 'bundle' that is not in the response """
-        res = _ParseSDLResponse(
-            json.loads(test_values.response_ok), {"bundle": "foo", "type": "bam"}
-        )
-        self.assertIsNotNone(res)
-        self.assertEqual(res["status"], "404")
-
-    def test_ParseSDLResponse_500(self):
-        """ response for SDL error """
-        res = _ParseSDLResponse(
-            json.loads(test_values.response_500), {"bundle": "foo", "type": "bam"}
-        )
-        self.assertIsNotNone(res)
-        self.assertEqual(res["status"], "500")
-
-    def test_ParseSDLResponse_empty(self):
-        """ valid empty JSON """
-        res = _ParseSDLResponse(
-            json.loads("{}"), {"bundle": "foo", "type": "bam"}
-        )
-        self.assertIsNone(res)
-
-    def test_SDLResponse_SRP_with_bams(self):
-        res = _ParseSDLResponse(
-            json.loads(test_values.response_SRP219736), {"bundle": "SRP219736", "type": "bam"}
-        )
+    def test_Request_for_run_and_file(self):
+        res1 = _GetObject('SRR000000', 1, 'test')
+        want = res1['contents'][0]
+        res = _GetObject(want['id'], 1, 'test')
+        self.assertEqual(res['id'], want['id'])
+        self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
+        self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
 
 def read():
     logging.info(f"In read()")
