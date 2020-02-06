@@ -399,8 +399,6 @@ def GetCE():
 
 _verbose = None
 
-import test_values
-
 class TestServer(unittest.TestCase):
     # TODO: Not very useful without rest of HTTP/Connexion framework
 
