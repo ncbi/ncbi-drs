@@ -32,6 +32,7 @@ import socket
 import base64
 import json
 import hashlib
+from rewrite import Rewriter
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -75,8 +76,10 @@ def apikey_auth(token, required_scopes):
         raise OAuthProblem("Invalid token")
     return ok
 
+_rewriter = Rewriter()
+
 def _GetRedirURL(location):
-    return location['link']
+    return _rewriter.rewrite(location['link'])
 
 def _TranslateService(location):
     try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
@@ -450,6 +453,7 @@ class TestServer(unittest.TestCase):
         res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'test')
         self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
+        self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
     def test_Request_for_run_and_file(self):
         res1 = _GetObject('SRR000000', 1, 'test')
@@ -458,6 +462,7 @@ class TestServer(unittest.TestCase):
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
+        self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
 def read():
     logging.info(f"In read()")
