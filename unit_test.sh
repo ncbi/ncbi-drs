@@ -36,9 +36,8 @@ else
     RET=1
 fi
 
-out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/1234 | jq -S '.')
-# Should return "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
-if [[ "$out" =~ "aa8fbf47c010ee82e783f52f9e7a21d0" ]]; then
+out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam | jq -S '.')
+if [[ "$out" =~ "02b1ea5174fee52d14195fd07ece176a" ]]; then
     echo "OK results were: $out"
 else
     echo "Test failed: $out"
