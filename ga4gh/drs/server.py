@@ -1,3 +1,5 @@
+""" SDL -> DRS bridging server """
+
 # =============================================================================
 #
 #                            PUBLIC DOMAIN NOTICE
@@ -33,6 +35,7 @@ import base64
 import json
 import hashlib
 from rewrite import Rewriter
+import urllib
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -78,16 +81,16 @@ def apikey_auth(token, required_scopes):
 
 _rewriter = Rewriter()
 
-def _GetRedirURL(location):
-    return _rewriter.rewrite(location['link'])
+def _GetRedirURL(location, proxyURL: str):
+    return _rewriter.rewrite(location['link'], proxyURL)
 
 def _TranslateService(location):
     try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
     except: return 'https'
 
-def _MakeAccessMethod(location):
+def _MakeAccessMethod(location, proxyURL: str):
     """ Create a DRS Access Method from SDL info """
-    access_method = { 'access_url': _GetRedirURL(location), 'type': _TranslateService(location) }
+    access_method = { 'access_url': _GetRedirURL(location, proxyURL), 'type': _TranslateService(location) }
     if location.get('region'):
         access_method['region'] = location.get('region')
     return access_method
@@ -98,7 +101,7 @@ def _MakeAccessMethod(location):
 ### @param query: { bundle: accession, type: file type }
 ###
 ### @return None if error else Dictionary with requested object or a 404
-def _ParseSDLResponseV2(response, accession: str, file_part: str):
+def _ParseSDLResponseV2(response, accession: str, file_part: str, proxyURL: str):
     """ Parse version 2 SDL Response JSON """
     for result in response['result']:
         if result['bundle'] != accession: continue
@@ -114,7 +117,7 @@ def _ParseSDLResponseV2(response, accession: str, file_part: str):
             access_methods = None
             if file_part:
                 if file_part != name: continue
-                access_methods = list(_MakeAccessMethod(location) for location in file['locations'])
+                access_methods = list(_MakeAccessMethod(location, proxyURL) for location in file['locations'])
 
             yield {
                 'status': '200',
@@ -134,11 +137,11 @@ def _ParseSDLResponseV2(response, accession: str, file_part: str):
 ### @param file_part: the file part of the query, may be None
 ###
 ### @return list or raises likely KeyError from missing expected fields
-def _ParseSDLResponse(response, accession: str, file_part: str):
+def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str):
     """ Parse SDL Response JSON """
     version = response.get('version')
     if version and version == '2':
-        return list(_ParseSDLResponseV2(response, accession, file_part))
+        return list(_ParseSDLResponseV2(response, accession, file_part, proxyURL))
 
     msg = response.get('message')
     return list({'status': str(response['status']), 'msg': msg if msg else response.get('msg')})
@@ -158,6 +161,9 @@ def _Split_SRA_ID(object_id: str):
     return (None, None, None, None)
 
 def _GetObject(object_id: str, expand: bool, requestURL: str):
+    (scheme, netloc, *dummy) = urllib.parse.urlsplit(requestURL)
+    proxyURL = urllib.parse.urlunsplit((scheme, netloc, 'proxy/', None, None))
+
     (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
     if not issuer:
         return { 'status_code': 404, 'msg': "Only SRA accessions are available" }, 404
@@ -228,14 +234,14 @@ def _GetObject(object_id: str, expand: bool, requestURL: str):
         """
         ret['sdl_status'] = 200
         ret['sdl_json'] = test_response
-        res = _ParseSDLResponse(json.loads(test_response), accession, file_part)
+        res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
         sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
         ret['sdl_status'] = sdl.status_code
         ret['sdl_json'] = sdl.json()
 
         try:
-            res = _ParseSDLResponse(sdl.json(), accession, file_part)
+            res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
         except:
             logging.error("unexpected response from SDL: " + sdl.text)
             return { 'status_code': 500, 'msg': 'Internal server error' }, 500
@@ -442,7 +448,7 @@ class TestServer(unittest.TestCase):
             self.assertEqual(s, None)
 
     def test_Request_for_run(self):
-        res = _GetObject('SRR000000', 1, 'test') # expand doesn't matter, true and false should produce the same result
+        res = _GetObject('SRR000000', 1, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
         self.assertEqual(res['size'], 2299145289+1128363105)
         self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
         self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
@@ -450,19 +456,20 @@ class TestServer(unittest.TestCase):
         self.assertEqual(len(res['contents']), 2)
 
     def test_Request_for_file(self):
-        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'test')
+        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'http://localhost:8080/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
     def test_Request_for_run_and_file(self):
-        res1 = _GetObject('SRR000000', 1, 'test')
+        res1 = _GetObject('SRR000000', 1, 'http://localhost:8080/objects/SRR000000')
         want = res1['contents'][0]
-        res = _GetObject(want['id'], 1, 'test')
+        res = _GetObject(want['id'], 1, 'http://localhost:8080/objects/'+want['id'])
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
+        # print(res['access_methods'][0]['access_url'])
 
 def read():
     logging.info(f"In read()")

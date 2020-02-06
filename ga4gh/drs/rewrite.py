@@ -1,3 +1,5 @@
+""" Rewrite SDL URLs """
+
 # =============================================================================
 #
 #                            PUBLIC DOMAIN NOTICE
@@ -22,10 +24,37 @@
 #
 # =============================================================================
 
-class Rewriter:
-    def rewrite(self, urlString: str):
-        return urlString
+from tempfile import mkstemp, gettempdir
+import json
+import datetime
+import os
+import re
+from urllib.parse import urljoin
 
-    def unrewrite(self, urlString: str):
-        return urlString
+_dir = gettempdir()
+
+class Rewriter:
+    """ Rewrite SDL URL for our proxy
+    """
+    def rewrite(self, urlString: str, baseURL: str):
+        """ Rewrite SDL URL for our proxy """
+        (f, n) = mkstemp('.tempurl', 'gov.nih.nlm.ncbi.sra.drs.', _dir, True)
+        m = re.search(r'gov\.nih\.nlm\.ncbi\.sra\.drs\.(.+)', n)
+        r = m[1][:-8]
+        fd = os.fdopen(f, mode='w')
+        json.dump({'from': urlString, 'to': r, 'when': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')}, fd)
+        fd.close()
+        return urljoin(baseURL, r)
+
+    def retrieve(self, urlString: str):
+        """ Extract original SDL URL from rewritten URL """
+        j = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.sra.drs.{urlString}.tempurl"))
+        # print(j)
+        return j['from'] if j['to'] == urlString else None
+
+if __name__ == "__main__":
+    r = Rewriter()
+    n = r.rewrite('foo', '')
+    u = r.retrieve(n)
+    print(u)
 
