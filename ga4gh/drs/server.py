@@ -1,3 +1,5 @@
+""" SDL -> DRS bridging server """
+
 # =============================================================================
 #
 #                            PUBLIC DOMAIN NOTICE
@@ -28,10 +30,11 @@ import logging
 import requests
 import unittest
 import re
-import socket
-import base64
 import json
 import hashlib
+from rewrite import Rewriter
+from urllib.parse import urlsplit, urlunsplit, urljoin
+from cloud import ComputeEnvironmentToken
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -75,16 +78,19 @@ def apikey_auth(token, required_scopes):
         raise OAuthProblem("Invalid token")
     return ok
 
-def _GetRedirURL(location):
-    return location['link']
+_rewriter = Rewriter()
 
-def _TranslateService(location):
+def _GetRedirURL(location, proxyURL: str) -> str:
+    shortID = _rewriter.Rewrite(location['link'])
+    return urljoin(proxyURL, shortID)
+
+def _TranslateService(location) -> str:
     try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
     except: return 'https'
 
-def _MakeAccessMethod(location):
+def _MakeAccessMethod(location, proxyURL: str) -> dict:
     """ Create a DRS Access Method from SDL info """
-    access_method = { 'access_url': _GetRedirURL(location), 'type': _TranslateService(location) }
+    access_method = { 'access_url': _GetRedirURL(location, proxyURL), 'type': _TranslateService(location) }
     if location.get('region'):
         access_method['region'] = location.get('region')
     return access_method
@@ -94,8 +100,8 @@ def _MakeAccessMethod(location):
 ### @param response: SDL response JSON
 ### @param query: { bundle: accession, type: file type }
 ###
-### @return None if error else Dictionary with requested object or a 404
-def _ParseSDLResponseV2(response, accession: str, file_part: str):
+### @return nothing; it's a generator
+def _ParseSDLResponseV2(response, accession: str, file_part: str, proxyURL: str) -> None:
     """ Parse version 2 SDL Response JSON """
     for result in response['result']:
         if result['bundle'] != accession: continue
@@ -111,7 +117,7 @@ def _ParseSDLResponseV2(response, accession: str, file_part: str):
             access_methods = None
             if file_part:
                 if file_part != name: continue
-                access_methods = list(_MakeAccessMethod(location) for location in file['locations'])
+                access_methods = list(_MakeAccessMethod(location, proxyURL) for location in file['locations'])
 
             yield {
                 'status': '200',
@@ -131,22 +137,22 @@ def _ParseSDLResponseV2(response, accession: str, file_part: str):
 ### @param file_part: the file part of the query, may be None
 ###
 ### @return list or raises likely KeyError from missing expected fields
-def _ParseSDLResponse(response, accession: str, file_part: str):
+def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str) -> list:
     """ Parse SDL Response JSON """
     version = response.get('version')
     if version and version == '2':
-        return list(_ParseSDLResponseV2(response, accession, file_part))
+        return list(_ParseSDLResponseV2(response, accession, file_part, proxyURL))
 
     msg = response.get('message')
     return list({'status': str(response['status']), 'msg': msg if msg else response.get('msg')})
 
-def _MD5_SDLResponses(response):
+def _MD5_SDLResponses(response) -> str:
     m = hashlib.md5()
     for digest in sorted(x['md5'].encode('ascii') for x in response):
         m.update(digest)
     return m.hexdigest()
 
-def _Split_SRA_ID(object_id: str):
+def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
     """ Match SRA accession pattern and split into (useful?) components """
     m = re.match(r'^([EDS])R([APRSXZ])(\d{6,9})(?:\.(.+)){0,1}', object_id)
     if m:
@@ -154,7 +160,10 @@ def _Split_SRA_ID(object_id: str):
         return (issuer, type, serialNo, remainder)
     return (None, None, None, None)
 
-def _GetObject(object_id: str, expand: bool, requestURL: str):
+def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
+    (scheme, netloc, *dummy) = urlsplit(requestURL)
+    proxyURL = urlunsplit((scheme, netloc, 'proxy/', None, None))
+
     (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
     if not issuer:
         return { 'status_code': 404, 'msg': "Only SRA accessions are available" }, 404
@@ -173,7 +182,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str):
     params['acc'] = accession
 
     hdrs = {}
-    cet = GetCE()
+    cet = ComputeEnvironmentToken()
     if cet:
         hdrs['ident'] = cet
 
@@ -225,14 +234,14 @@ def _GetObject(object_id: str, expand: bool, requestURL: str):
         """
         ret['sdl_status'] = 200
         ret['sdl_json'] = test_response
-        res = _ParseSDLResponse(json.loads(test_response), accession, file_part)
+        res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
         sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
         ret['sdl_status'] = sdl.status_code
         ret['sdl_json'] = sdl.json()
 
         try:
-            res = _ParseSDLResponse(sdl.json(), accession, file_part)
+            res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
         except:
             logging.error("unexpected response from SDL: " + sdl.text)
             return { 'status_code': 500, 'msg': 'Internal server error' }, 500
@@ -283,161 +292,12 @@ def GetAccessURL(object_id: str, access_id: str):
     return {'status_code': 401, 'msg': "GetAccessURL is unused"}, 401  ###< this might not be right
 
 
-# ------------- Computing Environment
-
-
-def Base64(val):
-    """ Applies Base64 encoding to a string
-
-       Parameters
-       ----------
-       val : string to be encoded
-
-       Returns
-       -------
-       base64-encoded val
-   """
-
-    b64 = base64.b64encode(val.encode("utf-8"))
-    return str(b64, "utf-8")
-
-
-def _GetAWS_CE():
-    """ Get Compute Environment for AWS """
-    try:  # AWS
-        AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
-
-        document = requests.get(AWS_INSTANCE_URL + "/document")
-        if document.status_code == requests.codes.ok:
-            # encode the components
-            doc_b64 = Base64(document.text)
-            pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
-            pkcs7_b64 = Base64(
-                "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
-            )
-
-            return doc_b64 + "." + pkcs7_b64
-    except:
-        pass
-
-    return None
-
-
-def _GetGCP_CE():
-    """ Get Compute Environment for GCP """
-    try:  # GCP
-        GCP_CE_URL = (
-            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
-            "?audience=https://www.ncbi.nlm.nih.gov&format=full"
-        )
-        document = requests.get(GCP_CE_URL, headers={"Metadata-Flavor": "Google"})
-        if document.status_code == requests.codes.ok:
-            return document.text
-    except:
-        pass
-
-    return None
-
-
-def _GetCloud():
-    """ Discover Cloud by trying to access platform-specific metadata
-
-       Parameters
-       ----------
-       none
-
-       Returns
-       -------
-       Function for getting the Compute Environment or None
-    """
-    try:
-        """ GCP has this hostname """
-        HOSTNAME = "metadata"
-        socket.gethostbyname(HOSTNAME)
-        return _GetGCP_CE
-    except:
-        pass
-
-    try:
-        """ Try connecting to AWS metadata server
-            It should connect immediately if in AWS
-        """
-        HOST = "169.254.169.254"
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.100)
-        sock.connect((HOST, 80))
-        sock.close()
-        return _GetAWS_CE
-    except:
-        pass
-    finally:
-        sock.close()
-
-    return None
-
-
-_cloud = _GetCloud()
-
-
-def GetCE():
-    """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
-       The CE token is to be sent to SDL as "ident=<CEtoken>" in the body of a POST request.
-
-       Parameters
-       ----------
-       none
-
-       Returns
-       -------
-       CE token as a string if on a cloud, or None if not on a cloud.
-    """
-
-    return _cloud() if _cloud else None
-
-
 # --------------------- Unit tests
 
-_verbose = None
-
 class TestServer(unittest.TestCase):
-    # TODO: Not very useful without rest of HTTP/Connexion framework
-
-    def OnGCP(self):
-        return _cloud == _GetGCP_CE
-
-    def OnAWS(self):
-        return _cloud == _GetAWS_CE
-
-    # test cases
-
-    def test_GetCE_docstring(self):
-        # make sure has a docstring
-        self.assertTrue(GetCE.__doc__)
-
-    def test_GetCE(self):
-        # output on the current platform
-        s = GetCE()
-
-        if self.OnGCP():
-            # an instance identity token, base64url-encoded
-            if _verbose:
-                print("GCP detected")
-            self.assertNotEqual(s, "")
-
-        elif self.OnAWS():
-            # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
-            if _verbose:
-                print("AWS detected")
-            self.assertNotEqual(s.find("."), -1)
-
-        else:
-            # neither AWS nor GCP: empty
-            if _verbose:
-                print("no cloud detected")
-            self.assertEqual(s, None)
 
     def test_Request_for_run(self):
-        res = _GetObject('SRR000000', 1, 'test') # expand doesn't matter, true and false should produce the same result
+        res = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
         self.assertEqual(res['size'], 2299145289+1128363105)
         self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
         self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
@@ -445,25 +305,25 @@ class TestServer(unittest.TestCase):
         self.assertEqual(len(res['contents']), 2)
 
     def test_Request_for_file(self):
-        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'test')
+        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', True, 'http://localhost:8080/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
+        self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
     def test_Request_for_run_and_file(self):
-        res1 = _GetObject('SRR000000', 1, 'test')
+        res1 = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000')
         want = res1['contents'][0]
-        res = _GetObject(want['id'], 1, 'test')
+        res = _GetObject(want['id'], True, 'http://localhost:8080/objects/'+want['id'])
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
+        self.assertIsNotNone(res['access_methods'][0]['access_url'])
+        # print(res['access_methods'][0]['access_url'])
 
 def read():
     logging.info(f"In read()")
     return []
 
 
-import sys
-
 if __name__ == "__main__":
-    _verbose = "--verbose" in sys.argv
     unittest.main()
