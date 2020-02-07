@@ -52,11 +52,14 @@ class Rewriter:
     def Retrieve(self, shortID: str) -> str:
         """ Extract original SDL URL from rewritten URL """
         try:
-            obj = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl"))
+            fh = open(f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl")
+            obj = json.load(fh)
             # print(obj)
             return obj['from'] if obj['to'] == shortID else None
         except:
             return None
+        finally:
+            fh.close()
 
 if __name__ == "__main__":
     r = Rewriter()
