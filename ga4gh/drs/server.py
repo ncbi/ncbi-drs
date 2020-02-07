@@ -297,7 +297,7 @@ def GetAccessURL(object_id: str, access_id: str):
 class TestServer(unittest.TestCase):
 
     def test_Request_for_run(self):
-        res = _GetObject('SRR000000', 1, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
+        res = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
         self.assertEqual(res['size'], 2299145289+1128363105)
         self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
         self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
@@ -305,15 +305,15 @@ class TestServer(unittest.TestCase):
         self.assertEqual(len(res['contents']), 2)
 
     def test_Request_for_file(self):
-        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 1, 'http://localhost:8080/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
+        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', True, 'http://localhost:8080/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
         self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
     def test_Request_for_run_and_file(self):
-        res1 = _GetObject('SRR000000', 1, 'http://localhost:8080/objects/SRR000000')
+        res1 = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000')
         want = res1['contents'][0]
-        res = _GetObject(want['id'], 1, 'http://localhost:8080/objects/'+want['id'])
+        res = _GetObject(want['id'], True, 'http://localhost:8080/objects/'+want['id'])
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
