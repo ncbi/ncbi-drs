@@ -26,6 +26,7 @@
 
 import socket
 import base64
+import requests
 
 def _Base64(val: str) -> str:
     """ Applies Base64 encoding to a string
