@@ -236,15 +236,20 @@ def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
         ret['sdl_json'] = test_response
         res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
-        sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
-        ret['sdl_status'] = sdl.status_code
-        ret['sdl_json'] = sdl.json()
+        try:
+            sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
+        except:
+            logging.error("failed to contact SDL")
+            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
 
         try:
             res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
         except:
             logging.error("unexpected response from SDL: " + sdl.text)
             return { 'status_code': 500, 'msg': 'Internal server error' }, 500
+
+        ret['sdl_status'] = sdl.status_code
+        ret['sdl_json'] = sdl.json()
 
     if len(res) == 0:
         return { 'status_code': 404, 'msg': 'not found' }, 404
