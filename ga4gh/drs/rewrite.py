@@ -25,36 +25,42 @@
 # =============================================================================
 
 from tempfile import mkstemp, gettempdir
-import json
-import datetime
-import os
-import re
+from os import fdopen
+from datetime import datetime
 from urllib.parse import urljoin
+import json
+import re
+
+def _timestamp() -> str:
+    return datetime.utcnow().isoformat("T") + "Z"
 
 _dir = gettempdir()
 
 class Rewriter:
     """ Rewrite SDL URL for our proxy
     """
-    def rewrite(self, urlString: str, baseURL: str):
+    def Rewrite(self, urlString: str) -> str:
         """ Rewrite SDL URL for our proxy """
-        (f, n) = mkstemp('.tempurl', 'gov.nih.nlm.ncbi.sra.drs.', _dir, True)
-        m = re.search(r'gov\.nih\.nlm\.ncbi\.sra\.drs\.(.+)', n)
-        r = m[1][:-8]
-        fd = os.fdopen(f, mode='w')
-        json.dump({'from': urlString, 'to': r, 'when': datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')}, fd)
-        fd.close()
-        return urljoin(baseURL, r)
+        (fd, name) = mkstemp('.tempurl', 'gov.nih.nlm.ncbi.drs.', _dir, True)
+        m = re.search(r'gov\.nih\.nlm\.ncbi\.drs\.(.+)', name)
+        shortID = m[1][:-8]
+        fh = fdopen(fd, mode='w')
+        json.dump({'from': urlString, 'to': shortID, 'when': _timestamp()}, fh)
+        fh.close()
+        return shortID
 
-    def retrieve(self, shortID: str):
+    def Retrieve(self, shortID: str) -> str:
         """ Extract original SDL URL from rewritten URL """
-        j = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.sra.drs.{shortID}.tempurl"))
-        # print(j)
-        return j['from'] if j['to'] == shortID else None
+        try:
+            obj = json.load(open(f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl"))
+            # print(obj)
+            return obj['from'] if obj['to'] == shortID else None
+        except:
+            return None
 
 if __name__ == "__main__":
     r = Rewriter()
-    n = r.rewrite('foo', '')
-    u = r.retrieve(n)
+    n = r.Rewrite('foo')
+    u = r.Retrieve(n)
     print(u)
 
