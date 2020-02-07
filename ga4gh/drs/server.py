@@ -30,12 +30,11 @@ import logging
 import requests
 import unittest
 import re
-import socket
-import base64
 import json
 import hashlib
 from rewrite import Rewriter
-import urllib
+from urllib.parse import urlsplit, urlunsplit, urljoin
+from cloud import ComputeEnvironmentToken
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -81,14 +80,15 @@ def apikey_auth(token, required_scopes):
 
 _rewriter = Rewriter()
 
-def _GetRedirURL(location, proxyURL: str):
-    return _rewriter.rewrite(location['link'], proxyURL)
+def _GetRedirURL(location, proxyURL: str) -> str:
+    shortID = _rewriter.Rewrite(location['link'])
+    return urljoin(proxyURL, shortID)
 
-def _TranslateService(location):
+def _TranslateService(location) -> str:
     try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
     except: return 'https'
 
-def _MakeAccessMethod(location, proxyURL: str):
+def _MakeAccessMethod(location, proxyURL: str) -> dict:
     """ Create a DRS Access Method from SDL info """
     access_method = { 'access_url': _GetRedirURL(location, proxyURL), 'type': _TranslateService(location) }
     if location.get('region'):
@@ -100,8 +100,8 @@ def _MakeAccessMethod(location, proxyURL: str):
 ### @param response: SDL response JSON
 ### @param query: { bundle: accession, type: file type }
 ###
-### @return None if error else Dictionary with requested object or a 404
-def _ParseSDLResponseV2(response, accession: str, file_part: str, proxyURL: str):
+### @return nothing; it's a generator
+def _ParseSDLResponseV2(response, accession: str, file_part: str, proxyURL: str) -> None:
     """ Parse version 2 SDL Response JSON """
     for result in response['result']:
         if result['bundle'] != accession: continue
@@ -137,7 +137,7 @@ def _ParseSDLResponseV2(response, accession: str, file_part: str, proxyURL: str)
 ### @param file_part: the file part of the query, may be None
 ###
 ### @return list or raises likely KeyError from missing expected fields
-def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str):
+def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str) -> list:
     """ Parse SDL Response JSON """
     version = response.get('version')
     if version and version == '2':
@@ -146,13 +146,13 @@ def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str):
     msg = response.get('message')
     return list({'status': str(response['status']), 'msg': msg if msg else response.get('msg')})
 
-def _MD5_SDLResponses(response):
+def _MD5_SDLResponses(response) -> str:
     m = hashlib.md5()
     for digest in sorted(x['md5'].encode('ascii') for x in response):
         m.update(digest)
     return m.hexdigest()
 
-def _Split_SRA_ID(object_id: str):
+def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
     """ Match SRA accession pattern and split into (useful?) components """
     m = re.match(r'^([EDS])R([APRSXZ])(\d{6,9})(?:\.(.+)){0,1}', object_id)
     if m:
@@ -160,9 +160,9 @@ def _Split_SRA_ID(object_id: str):
         return (issuer, type, serialNo, remainder)
     return (None, None, None, None)
 
-def _GetObject(object_id: str, expand: bool, requestURL: str):
-    (scheme, netloc, *dummy) = urllib.parse.urlsplit(requestURL)
-    proxyURL = urllib.parse.urlunsplit((scheme, netloc, 'proxy/', None, None))
+def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
+    (scheme, netloc, *dummy) = urlsplit(requestURL)
+    proxyURL = urlunsplit((scheme, netloc, 'proxy/', None, None))
 
     (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
     if not issuer:
@@ -182,7 +182,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str):
     params['acc'] = accession
 
     hdrs = {}
-    cet = GetCE()
+    cet = ComputeEnvironmentToken()
     if cet:
         hdrs['ident'] = cet
 
@@ -292,160 +292,9 @@ def GetAccessURL(object_id: str, access_id: str):
     return {'status_code': 401, 'msg': "GetAccessURL is unused"}, 401  ###< this might not be right
 
 
-# ------------- Computing Environment
-
-
-def Base64(val):
-    """ Applies Base64 encoding to a string
-
-       Parameters
-       ----------
-       val : string to be encoded
-
-       Returns
-       -------
-       base64-encoded val
-   """
-
-    b64 = base64.b64encode(val.encode("utf-8"))
-    return str(b64, "utf-8")
-
-
-def _GetAWS_CE():
-    """ Get Compute Environment for AWS """
-    try:  # AWS
-        AWS_INSTANCE_URL = "http://169.254.169.254/latest/dynamic/instance-identity"
-
-        document = requests.get(AWS_INSTANCE_URL + "/document")
-        if document.status_code == requests.codes.ok:
-            # encode the components
-            doc_b64 = Base64(document.text)
-            pkcs7 = requests.get(AWS_INSTANCE_URL + "/pkcs7")
-            pkcs7_b64 = Base64(
-                "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
-            )
-
-            return doc_b64 + "." + pkcs7_b64
-    except:
-        pass
-
-    return None
-
-
-def _GetGCP_CE():
-    """ Get Compute Environment for GCP """
-    try:  # GCP
-        GCP_CE_URL = (
-            "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity"
-            "?audience=https://www.ncbi.nlm.nih.gov&format=full"
-        )
-        document = requests.get(GCP_CE_URL, headers={"Metadata-Flavor": "Google"})
-        if document.status_code == requests.codes.ok:
-            return document.text
-    except:
-        pass
-
-    return None
-
-
-def _GetCloud():
-    """ Discover Cloud by trying to access platform-specific metadata
-
-       Parameters
-       ----------
-       none
-
-       Returns
-       -------
-       Function for getting the Compute Environment or None
-    """
-    try:
-        """ GCP has this hostname """
-        HOSTNAME = "metadata"
-        socket.gethostbyname(HOSTNAME)
-        return _GetGCP_CE
-    except:
-        pass
-
-    try:
-        """ Try connecting to AWS metadata server
-            It should connect immediately if in AWS
-        """
-        HOST = "169.254.169.254"
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.100)
-        sock.connect((HOST, 80))
-        sock.close()
-        return _GetAWS_CE
-    except:
-        pass
-    finally:
-        sock.close()
-
-    return None
-
-
-_cloud = _GetCloud()
-
-
-def GetCE():
-    """Returns a Computing Environment token specifying the current cloud context (AWS, GCP, or neither).
-       The CE token is to be sent to SDL as "ident=<CEtoken>" in the body of a POST request.
-
-       Parameters
-       ----------
-       none
-
-       Returns
-       -------
-       CE token as a string if on a cloud, or None if not on a cloud.
-    """
-
-    return _cloud() if _cloud else None
-
-
 # --------------------- Unit tests
 
-_verbose = None
-
-import test_values
-
 class TestServer(unittest.TestCase):
-    # TODO: Not very useful without rest of HTTP/Connexion framework
-
-    def OnGCP(self):
-        return _cloud == _GetGCP_CE
-
-    def OnAWS(self):
-        return _cloud == _GetAWS_CE
-
-    # test cases
-
-    def test_GetCE_docstring(self):
-        # make sure has a docstring
-        self.assertTrue(GetCE.__doc__)
-
-    def test_GetCE(self):
-        # output on the current platform
-        s = GetCE()
-
-        if self.OnGCP():
-            # an instance identity token, base64url-encoded
-            if _verbose:
-                print("GCP detected")
-            self.assertNotEqual(s, "")
-
-        elif self.OnAWS():
-            # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
-            if _verbose:
-                print("AWS detected")
-            self.assertNotEqual(s.find("."), -1)
-
-        else:
-            # neither AWS nor GCP: empty
-            if _verbose:
-                print("no cloud detected")
-            self.assertEqual(s, None)
 
     def test_Request_for_run(self):
         res = _GetObject('SRR000000', 1, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
@@ -476,8 +325,5 @@ def read():
     return []
 
 
-import sys
-
 if __name__ == "__main__":
-    _verbose = "--verbose" in sys.argv
     unittest.main()
