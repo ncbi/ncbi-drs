@@ -1,0 +1,21 @@
+# Example:
+#  docker run -t --rm `docker build -q -f Dockerfile.unit-tests .`
+
+FROM alpine:latest
+
+LABEL author="Kenneth Durbrow" maintainer="kenneth.durbrow@nih.gov"
+
+RUN apk update && apk upgrade
+
+RUN apk add bash curl jq python3 py3-nose && \
+    pip3 -q install connexion python_dateutil
+
+RUN apk add gcc alpine-sdk linux-headers python3-dev && \
+    pip3 -q install uwsgi
+
+COPY openapi ./openapi
+COPY ut_mini.sh ./unit_test.sh
+COPY drs.py .
+COPY ga4gh ./ga4gh
+
+CMD env USER=foo bash unit_test.sh
