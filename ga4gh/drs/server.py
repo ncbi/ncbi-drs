@@ -32,9 +32,9 @@ import unittest
 import re
 import json
 import hashlib
-from rewrite import Rewriter
+from . rewrite import Rewriter
 from urllib.parse import urlsplit, urlunsplit, urljoin
-from cloud import ComputeEnvironmentToken
+from . cloud import ComputeEnvironmentToken
 
 # from connexion import NoContent
 from flask import make_response, abort
