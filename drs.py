@@ -61,7 +61,7 @@ app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
 # Read the swagger.yml file to configure the endpoints
 # TODO: validate=True
-app.add_api("data_repository_service.swagger.yaml", strict_validation=False)
+app.add_api("data_repository_service.swagger.yaml", strict_validation=True)
 
 application = app.app
 
