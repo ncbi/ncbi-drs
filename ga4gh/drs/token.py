@@ -24,6 +24,12 @@
 #
 # =============================================================================
 
+import re
+
 class TokenExtractor:
     def extract(self, wrapper: str) -> str:
-        return wrapper
+        if wrapper:
+            m = re.match(r'^Bearer\s+(.+)', wrapper)
+            if m: return m[1]
+        return None
+

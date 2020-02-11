@@ -35,41 +35,13 @@ import hashlib
 from . rewrite import Rewriter
 from urllib.parse import urlsplit, urlunsplit, urljoin
 from . cloud import ComputeEnvironmentToken
+from . token import TokenExtractor
 
 # from connexion import NoContent
 from flask import make_response, abort
 
 SDL_RETRIEVE_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
 SDL_LOCALITY_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/locality"
-
-VALID_CHECKSUMS = [
-    "sha-256",
-    "sha-512",
-    "sha3-256",
-    "sha3-512",
-    "md5",
-    "etag",
-    "crc32c",
-    "trunc512",
-    "sha1",
-]
-
-VALID_ACCESS_METHODS = [
-    "s3",
-    "gs",
-    "ftp",
-    "gsiftp",
-    "globus",
-    "htsget",
-    "https",
-    "file",
-]
-
-
-def get_timestamp():
-    d = datetime.datetime.utcnow()
-    return d.isoformat("T") + "Z"
-
 
 def apikey_auth(token, required_scopes):
     logging.info(f"Got server apikey {token} {required_scopes}")
@@ -79,10 +51,16 @@ def apikey_auth(token, required_scopes):
     return ok
 
 _rewriter = Rewriter()
+_extractor = TokenExtractor()
+_SDL_Redirector_Prefix = 'https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi'
 
 def _GetRedirURL(location, proxyURL: str) -> str:
-    shortID = _rewriter.Rewrite(location['link'])
-    return urljoin(proxyURL, shortID)
+    link = location['link']
+    if link.startswith(_SDL_Redirector_Prefix):
+        shortID = _rewriter.Rewrite(link)
+        return urljoin(proxyURL, shortID)
+    else:
+        return link
 
 def _TranslateService(location) -> str:
     try: return { 's3': 's3', 'gs': 'gs' }[location['service']]
@@ -160,7 +138,7 @@ def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
         return (issuer, type, serialNo, remainder)
     return (None, None, None, None)
 
-def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
+def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: dict = {}) -> dict:
     (scheme, netloc, *dummy) = urlsplit(requestURL)
     proxyURL = urlunsplit((scheme, netloc, 'proxy/', None, None))
 
@@ -181,10 +159,13 @@ def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
     params = {'accept-proto': 'https'}
     params['acc'] = accession
 
-    hdrs = {}
+    auth = _extractor.extract(requestHeaders.get('Authorization'))
+    if auth:
+        params['jwt'] = auth
+
     cet = ComputeEnvironmentToken()
     if cet:
-        hdrs['ident'] = cet
+        params['ident'] = cet
 
     # MARK: THIS IS TEST CODE
     if issuer == 'S' and serialNo == '000000': # SRR000000 was never used
@@ -232,35 +213,35 @@ def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
     ]
 }
         """
-        ret['sdl_status'] = 200
-        ret['sdl_json'] = test_response
+        # ret['sdl_status'] = 200
+        # ret['sdl_json'] = json.loads(test_response)
+        # ret['auth'] = auth
         res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
         try:
-            sdl = requests.post(SDL_RETRIEVE_CGI, data=params, headers=hdrs)
+            sdl = requests.post(SDL_RETRIEVE_CGI, data=params)
+            # ret['sdl_status'] = sdl.status_code
+            # ret['sdl_text'] = sdl.text
         except:
             logging.error("failed to contact SDL")
-            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
+            return { 'status_code': 500, 'msg': 'Internal server error' }
 
         try:
             res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
         except:
             logging.error("unexpected response from SDL: " + sdl.text)
-            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
-
-        ret['sdl_status'] = sdl.status_code
-        ret['sdl_json'] = sdl.json()
+            return { 'status_code': 500, 'msg': 'Internal server error' }
 
     if len(res) == 0:
-        return { 'status_code': 404, 'msg': 'not found' }, 404
+        return { 'status_code': 404, 'msg': 'not found' }
 
     if file_part:
         if len(res) != 1 or res[0]['id'] != object_id or not res[0]['access_methods'] or len(res[0]['access_methods']) == 0:
             logging.error("unexpected response from SDL: " + sdl.text)
-            return { 'status_code': 500, 'msg': 'Internal server error' }, 500
+            return { 'status_code': 500, 'msg': 'Internal server error' }
         res = res[0]
         if res['status'] != '200':
-            return { 'status_code': res['status'], 'msg': res['msg'] }, res['status']
+            return { 'status_code': res['status'], 'msg': res['msg'] }
 
         ret.update({
                 'name': res['name'],
@@ -272,7 +253,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str) -> dict:
         return ret
     else:
         if res[0]['status'] != '200':
-            return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }, res[0]['status']
+            return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }
 
         ret.update({
             'checksums': [{'checksum': _MD5_SDLResponses(res), 'type': 'md5'}],
@@ -287,7 +268,7 @@ def GetObject(object_id: str, expand: bool):
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    return _GetObject(object_id, expand, connexion.request.url)
+    return _GetObject(object_id, expand, connexion.request.url, connexion.request.headers)
 
 def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"In GetAccessURL {object_id} {access_id}")
