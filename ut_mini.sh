@@ -23,9 +23,7 @@ if [[ -z "$TOKEN_FILE" ]]; then
         RET=1
     fi
 else
-    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR10063844 | jq -S '.')
-    echo "Results were: $out"
-    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR10063844.SRR10063844.minhash.profile | jq -S '.')
+    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR1219879 | jq -S '.')
     echo "Results were: $out"
 fi
 

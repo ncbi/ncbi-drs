@@ -33,9 +33,9 @@ import re
 import json
 import hashlib
 from urllib.parse import urlsplit, urlunsplit, urljoin
-from rewrite import Rewriter
-from cloud import ComputeEnvironmentToken
-from token_extract import TokenExtractor
+from . rewrite import Rewriter
+from . cloud import ComputeEnvironmentToken
+from . token_extract import TokenExtractor
 
 # from connexion import NoContent
 from flask import make_response, abort
