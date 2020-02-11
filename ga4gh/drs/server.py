@@ -32,10 +32,10 @@ import unittest
 import re
 import json
 import hashlib
-from . rewrite import Rewriter
 from urllib.parse import urlsplit, urlunsplit, urljoin
-from . cloud import ComputeEnvironmentToken
-from . token import TokenExtractor
+from rewrite import Rewriter
+from cloud import ComputeEnvironmentToken
+from token_extract import TokenExtractor
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -161,7 +161,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
 
     auth = _extractor.extract(requestHeaders.get('Authorization'))
     if auth:
-        params['jwt'] = auth
+        params['cart'] = auth
 
     cet = ComputeEnvironmentToken()
     if cet:
