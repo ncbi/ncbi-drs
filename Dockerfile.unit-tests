@@ -1,5 +1,6 @@
 # Example:
 #  docker run -t --rm `docker build -q -f Dockerfile.unit-tests .`
+#  docker run -v $HOME:/host -e TOKEN_FILE=/host/magic.jwt -t --rm `docker build -q -f Dockerfile.unit-tests .`
 
 FROM alpine:latest
 
