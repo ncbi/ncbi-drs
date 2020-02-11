@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
-shopt -s nullglob globstar
-
 LOG="/tmp/uwsgi_$USER.log"
 rm -f "$LOG"
 
@@ -17,12 +14,17 @@ ${UWSGI} --logto "$LOG" --http ":$PORT" --wsgi-file drs.py & sleep 2
 
 RET=0
 
-out=$(curl -s -H 'Authorization: authme' http://localhost:$PORT/ga4gh/drs/v1/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam | jq -S '.')
-if [[ "$out" =~ "02b1ea5174fee52d14195fd07ece176a" ]]; then
-    echo "OK results were: $out"
+if [[ -z "$TOKEN_FILE" ]]; then
+    out=$(curl -s http://localhost:$PORT/ga4gh/drs/v1/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam | jq -S '.')
+    if [[ "$out" =~ "02b1ea5174fee52d14195fd07ece176a" ]]; then
+        echo "OK results were: $out"
+    else
+        echo "Test failed: $out"
+        RET=1
+    fi
 else
-    echo "Test failed: $out"
-    RET=1
+    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR1219879 | jq -S '.')
+    echo "Results were: $out"
 fi
 
 echo "Stopping uwsgi"
