@@ -63,7 +63,7 @@ def _GetAWS_metadata() -> dict:
                 "-----BEGIN PKCS7-----\n" + pkcs7.text + "\n-----END PKCS7-----\n"
             )
 
-            _cache_AWS_metadata = { 'CE': doc_b64 + "." + pkcs7_b64, 'region': region }
+            _cache_AWS_metadata = { 'CE': f"{pkcs7_b64}.{doc_b64}", 'region': region }
     except:
         pass
 
