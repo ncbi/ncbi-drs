@@ -51,6 +51,7 @@ class Rewriter:
 
     def Retrieve(self, shortID: str) -> str:
         """ Extract original SDL URL from rewritten URL """
+        fh = None
         try:
             fh = open(f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl")
             obj = json.load(fh)
@@ -59,7 +60,7 @@ class Rewriter:
         except:
             return None
         finally:
-            fh.close()
+            if fh: fh.close()
 
 if __name__ == "__main__":
     r = Rewriter()
