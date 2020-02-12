@@ -32,10 +32,19 @@ import unittest
 import re
 import json
 import hashlib
-from urllib.parse import urlsplit, urlunsplit, urljoin
-from . rewrite import Rewriter
-from . cloud import ComputeEnvironmentToken
-from . token_extract import TokenExtractor
+from urllib.parse import urlsplit, urlunsplit, urljoin, urlencode
+import sys
+import os
+
+try:
+    from . rewrite import Rewriter
+    from . cloud import ComputeEnvironmentToken
+    from . token_extract import TokenExtractor
+except:
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from rewrite import Rewriter
+    from cloud import ComputeEnvironmentToken
+    from token_extract import TokenExtractor
 
 # from connexion import NoContent
 from flask import make_response, abort
@@ -122,7 +131,7 @@ def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str) -
         return list(_ParseSDLResponseV2(response, accession, file_part, proxyURL))
 
     msg = response.get('message')
-    return list({'status': str(response['status']), 'msg': msg if msg else response.get('msg')})
+    return [{'status': str(response['status']), 'msg': msg if msg else response.get('msg')}]
 
 def _MD5_SDLResponses(response) -> str:
     m = hashlib.md5()
@@ -156,16 +165,19 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         "self_uri": requestURL,  ###< this might not be right
     }
 
-    params = {'accept-proto': 'https'}
-    params['acc'] = accession
+    #params = {'accept-proto': 'https'}
+    #params['acc'] = accession
 
+    params = {'acc': accession}
+
+    post_body = {}
     auth = _extractor.extract(requestHeaders.get('Authorization'))
     if auth:
-        params['cart'] = auth
+        post_body['cart'] = auth
 
     cet = ComputeEnvironmentToken()
     if cet:
-        params['ident'] = cet
+        params['location'] = cet
 
     # MARK: THIS IS TEST CODE
     if issuer == 'S' and serialNo == '000000': # SRR000000 was never used
@@ -218,10 +230,13 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         # ret['auth'] = auth
         res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
+        url = SDL_RETRIEVE_CGI + '?' + urlencode(params)
+        ret['request_url'] = url
+        ret['form_body'] = post_body
         try:
-            sdl = requests.post(SDL_RETRIEVE_CGI, data=params)
-            # ret['sdl_status'] = sdl.status_code
-            # ret['sdl_text'] = sdl.text
+            sdl = requests.post(url, data=post_body)
+            ret['sdl_status'] = sdl.status_code
+            ret['sdl_text'] = sdl.text
         except:
             logging.error("failed to contact SDL")
             return { 'status_code': 500, 'msg': 'Internal server error' }
@@ -253,7 +268,8 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         return ret
     else:
         if res[0]['status'] != '200':
-            return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }
+            ret.update({ 'status_code': res[0]['status'], 'msg': res[0]['msg'] })
+            return ret
 
         ret.update({
             'checksums': [{'checksum': _MD5_SDLResponses(res), 'type': 'md5'}],
@@ -305,6 +321,9 @@ class TestServer(unittest.TestCase):
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
         # print(res['access_methods'][0]['access_url'])
+
+    def test_Request_for_real_run(self):
+        res = _GetObject('SRR1219879', True, 'http://localhost:8080/objects/SRR1219879')
 
 def read():
     logging.info(f"In read()")
