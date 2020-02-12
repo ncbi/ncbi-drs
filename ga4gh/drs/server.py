@@ -177,7 +177,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
 
     cet = ComputeEnvironmentToken()
     if cet:
-        params['location'] = cet
+        post_body['location'] = cet
 
     # MARK: THIS IS TEST CODE
     if issuer == 'S' and serialNo == '000000': # SRR000000 was never used
@@ -231,21 +231,23 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
     else:
         url = SDL_RETRIEVE_CGI + '?' + urlencode(params)
-        ret['request_url'] = url
-        ret['form_body'] = post_body
+        ret['_debug_request_url'] = url
+        ret['_debug_form_body'] = post_body
         try:
             sdl = requests.post(url, data=post_body)
-            ret['sdl_status'] = sdl.status_code
-            ret['sdl_text'] = sdl.text
+            ret['_debug_sdl_status'] = sdl.status_code
+            ret['_debug_sdl_text'] = sdl.text
         except:
             logging.error("failed to contact SDL")
-            return { 'status_code': 500, 'msg': 'Internal server error' }
+            ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
+            return ret
 
         try:
             res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
         except:
             logging.error("unexpected response from SDL: " + sdl.text)
-            return { 'status_code': 500, 'msg': 'Internal server error' }
+            ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
+            return ret
 
     if len(res) == 0:
         return { 'status_code': 404, 'msg': 'not found' }
@@ -253,10 +255,13 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
     if file_part:
         if len(res) != 1 or res[0]['id'] != object_id or not res[0]['access_methods'] or len(res[0]['access_methods']) == 0:
             logging.error("unexpected response from SDL: " + sdl.text)
-            return { 'status_code': 500, 'msg': 'Internal server error' }
+            ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
+            return ret
+
         res = res[0]
         if res['status'] != '200':
-            return { 'status_code': res['status'], 'msg': res['msg'] }
+            ret.update({ 'status_code': res['status'], 'msg': res['msg'] })
+            return ret
 
         ret.update({
                 'name': res['name'],
