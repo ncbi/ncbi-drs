@@ -141,7 +141,7 @@ def _MD5_SDLResponses(response) -> str:
 
 def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
     """ Match SRA accession pattern and split into (useful?) components """
-    m = re.match(r'^([EDS])R([APRSXZ])(\d{6,9})(?:\.(.+)){0,1}', object_id)
+    m = re.match(r'^([EDS])R([APRSXZ])(\d{6,9})(?:\.(.+)){0,1}$', object_id)
     if m:
         (issuer, type, serialNo, remainder) = m.groups()
         return (issuer, type, serialNo, remainder)
