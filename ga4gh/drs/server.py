@@ -37,9 +37,9 @@ import sys
 import os
 
 try:
-    from . rewrite import Rewriter
-    from . cloud import ComputeEnvironmentToken
-    from . token_extract import TokenExtractor
+    from .rewrite import Rewriter
+    from .cloud import ComputeEnvironmentToken
+    from .token_extract import TokenExtractor
 except:
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from rewrite import Rewriter
@@ -147,6 +147,10 @@ def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
         return (issuer, type, serialNo, remainder)
     return (None, None, None, None)
 
+def _drsURI(requestURL: str, objectID: str) -> str:
+    (scheme, netloc, *dummy) = urlsplit(requestURL)
+    return urlunsplit(('drs', netloc, objectID, None, None))
+
 def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: dict = {}) -> dict:
     (scheme, netloc, *dummy) = urlsplit(requestURL)
     proxyURL = urlunsplit((scheme, netloc, 'proxy/', None, None))
@@ -162,7 +166,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
 
     ret = {
         "id": object_id,
-        "self_uri": requestURL,  ###< this might not be right
+        "self_uri": _drsURI(requestURL, object_id)
     }
 
     #params = {'accept-proto': 'https'}
