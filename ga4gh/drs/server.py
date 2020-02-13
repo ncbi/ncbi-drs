@@ -153,12 +153,12 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
 
     (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
     if not issuer:
-        return { 'status_code': 404, 'msg': "Only SRA accessions are available" }, 404
+        return { 'status_code': 404, 'msg': "Only SRA accessions are available" }
 
     accession = f"{issuer}R{type}{serialNo}"
 
     if type != 'R':
-        return { 'status_code': 501, 'msg': "Only run accessions are implemented" }, 500
+        return { 'status_code': 501, 'msg': "Only run accessions are implemented" }
 
     ret = {
         "id": object_id,
@@ -296,7 +296,7 @@ def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    return {'status_code': 401, 'msg': "GetAccessURL is unused"}, 401  ###< this might not be right
+    return {'status_code': 401, 'msg': "GetAccessURL is unused"}
 
 
 # --------------------- Unit tests
