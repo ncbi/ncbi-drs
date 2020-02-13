@@ -23,12 +23,13 @@ if [[ -z "$TOKEN_FILE" ]]; then
         RET=1
     fi
 else
-#    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR1219879 | jq -S '.')
-    BAMFILE="SRR1219879.NA19377.unmapped.ILLUMINA.bwa.LWK.low_coverage.20120522.bam"
+    TOKEN=$(cat "$TOKEN_FILE")
+    ACCESSION="SRR1219879"
+    BAMFILE="NA19377.unmapped.ILLUMINA.bwa.LWK.low_coverage.20120522.bam"
     OUTPUT="/host/$BAMFILE"
     rm -f $OUTPUT
-    TOKEN=$(cat "$TOKEN_FILE")
-    out=$(curl -s -H "Authorization: Bearer $TOKEN" http://localhost:$PORT/ga4gh/drs/v1/objects/${BAMFILE} | jq -S '.')
+#   out=$(curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:$PORT/ga4gh/drs/v1/objects/${ACCESSION}" | jq -S '.')
+    out=$(curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:$PORT/ga4gh/drs/v1/objects/${ACCESSION}.${BAMFILE}" | jq -S '.')
 #    echo "Results were: $out"
     proxy=$(echo "$out" | jq -r .access_methods[0].access_url)
     echo "Proxy URL: $proxy"
