@@ -4,12 +4,12 @@ LOG="/tmp/uwsgi_$USER.log"
 rm -f "$LOG"
 
 # echo "Starting uwsgi"
-UWSGI=`which uwsgi`
+UWSGI=$(which uwsgi)
 echo "Starting uwsgi ($UWSGI)"
 
 PORT=$((RANDOM+1024))
 #~/.local/bin/uwsgi --http ":$PORT" --wsgi-file drs.py &
-echo ${UWSGI} --logto "$LOG" --http ":$PORT" --wsgi-file drs.py
+echo "${UWSGI}" --logto "$LOG" --http ":$PORT" --wsgi-file drs.py
 ${UWSGI} --logto "$LOG" --http ":$PORT" --wsgi-file drs.py & sleep 2
 
 RET=0
@@ -23,8 +23,24 @@ if [[ -z "$TOKEN_FILE" ]]; then
         RET=1
     fi
 else
-    out=$(curl -s -H "Authorization: Bearer $(cat $TOKEN_FILE)" http://localhost:$PORT/ga4gh/drs/v1/objects/SRR1219879 | jq -S '.')
-    echo "Results were: $out"
+    TOKEN=$(cat "$TOKEN_FILE")
+    ACCESSION="SRR1219879"
+    BAMFILE="NA19377.unmapped.ILLUMINA.bwa.LWK.low_coverage.20120522.bam"
+    OUTPUT="/host/$BAMFILE"
+    rm -f $OUTPUT
+#   out=$(curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:$PORT/ga4gh/drs/v1/objects/${ACCESSION}" | jq -S '.')
+    out=$(curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:$PORT/ga4gh/drs/v1/objects/${ACCESSION}.${BAMFILE}" | jq -S '.')
+#    echo "Results were: $out"
+    proxy=$(echo "$out" | jq -r .access_methods[0].access_url)
+    echo "Proxy URL: $proxy"
+#    curl -vs http://localhost:$PORT/proxy
+    curl -vs "$proxy" -o "$OUTPUT"
+    if [[ -z $OUTPUT ]]; then
+       echo "!!! Output file not found"
+       exit 1
+    else
+       ls -l "$OUTPUT"
+    fi
 fi
 
 echo "Stopping uwsgi"
@@ -39,5 +55,5 @@ if [[ "$RET" -eq 0 ]]; then
 fi
 
 echo "See $LOG for details"
-cat $LOG
+cat "$LOG"
 exit 1

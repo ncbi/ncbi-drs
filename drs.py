@@ -83,6 +83,22 @@ def home():
     return render_template("home.html", title="DRS", username=username)
 
 
+# --------------------- proxy
+from ga4gh.drs.proxy import do_proxy
+
+
+@app.route("/proxy")
+def helloProxy():
+    return do_proxy(connexion.request)
+
+
+@app.route("/proxy/<shortID>")
+def proxy(shortID):
+    return do_proxy(connexion.request)
+
+
+# ---------------------
+
 # If we're running in stand alone mode, run the application
 if __name__ == "__main__":
     logger.info("in main")
