@@ -23,7 +23,8 @@ def continue_or_cancel() -> int :
     print( "[ 2 ] ... cancel" )
     return str_to_int( input( "your choice: " ) )
 
-def requesting( accession : str, cart : str, drs_url : str ) -> str:
+def requesting( accession : str, cart : str, drs_url : str ) -> ( int, str ):
+    status = None
     res = ""
     url = "{}{}".format( drs_url, accession )
     url_parts = parse.urlparse( url )
@@ -33,17 +34,14 @@ def requesting( accession : str, cart : str, drs_url : str ) -> str:
     resp = conn.getresponse()
     status = resp.status
     print( "status : {}".format( status ) )
-    if status == 200 :
-        while True:
-            chunk = resp.read( 1024 * 1024 )
-            if len( chunk ) :
-                res = res + chunk.decode( "utf-8" )
-            else :
-                break
-    else :
-        print( "not connected - status: {}".format( status ) )
+    while True:
+        chunk = resp.read( 1024 * 1024 )
+        if len( chunk ) :
+            res = res + chunk.decode( "utf-8" )
+        else :
+            break
     conn.close()
-    return res
+    return ( status, res )
 
 def select_item( items ) :
     res = ""
@@ -123,9 +121,13 @@ if __name__ == '__main__':
         sys.exit( 3 )
 
     drs_url = "{}/ga4gh/drs/v1/objects/".format( drs_domain )
-    reply1 = requesting( accession, cart, drs_url )
-    if len( reply1 ) == 0 :
+    ( status1, reply1 ) = requesting( accession, cart, drs_url )
+    if status1 == None :
         print( "1st request to {} failed.".format( drs_url ) )
+        sys.exit( 3 )
+
+    if status1 != 200 :
+        print( reply1 )
         sys.exit( 3 )
 
     parsed1 = try_parse_json( reply1 )
@@ -133,14 +135,27 @@ if __name__ == '__main__':
         print( "cannot parse payload" )
         sys.exit( 3 )
 
-    selected = select_item( parsed1[ 'contents' ] )
+    try :
+        content = parsed1[ 'contents' ]
+    except :
+        content = None
+    if content == None :
+        print( "no content received:" )
+        print( reply1 )
+        sys.exit( 3 )
+
+    selected = select_item( content )
     if len( selected ) == 0 :
         sys.exit( 3 )
 
     print( "you selected: {}".format( selected ) )
-    reply2 = requesting( selected, cart, drs_url )
-    if len( reply2 ) == 0 :
+    ( status2, reply2 ) = requesting( selected, cart, drs_url )
+    if status2 == None :
         print( "2nd request to {} failed.".format( drs_url ) )
+        sys.exit( 3 )
+
+    if status2 != 200 :
+        print( reply2 )
         sys.exit( 3 )
 
     parsed2 = try_parse_json( reply2 )
@@ -148,9 +163,18 @@ if __name__ == '__main__':
         print( "cannot parse payload" )
         sys.exit( 3 )
 
-    url2 = parsed2[ 'access_methods' ][ 0 ][ 'access_url' ]
-    checksum = parsed2[ 'checksums' ][ 0 ][ 'checksum' ]
-    file_size = parsed2[ 'size' ]
+    url2 = None
+    checksum = None
+    file_size = None
+    try :
+        url2 = parsed2[ 'access_methods' ][ 0 ][ 'access_url' ]
+        checksum = parsed2[ 'checksums' ][ 0 ][ 'checksum' ]
+        file_size = parsed2[ 'size' ]
+    except :
+        print( "cannot extract url, checksum, file_size:" )
+        print( reply2 )
+        sys.exit( 3 )
+        
     print( "you get it from: {}\nchecksum={}\nsize={:,}".format( url2, checksum, file_size ) )
     if continue_or_cancel() != 1 :
         sys.exit( 3 )
