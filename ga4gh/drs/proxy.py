@@ -22,9 +22,14 @@
 #
 # =============================================================================
 
+"""
+   This module defines a transparent HTTP proxy for the NCBI's DRS webservice
+"""
+
 import connexion
 import requests
 import flask
+import logging
 
 from .rewrite import Rewriter
 from .cloud import ComputeEnvironmentToken
@@ -34,26 +39,49 @@ from urllib.parse import urlsplit, urlunsplit, urljoin
 _rewriter = Rewriter()
 
 
-def generate(resp):
+_CHUNK_SIZE = 10 * 1024 * 1024  # 10MB
+
+
+def _streamContent(resp: requests.Response):
+    """ Generator function, iterates over the content of a requests.Response in _CHUNK_SIZE chunks
+
+       Parameters
+       ----------
+       resp: request.Response to be iterated
+
+       Returns
+       -------
+       yields the next chunk (bytes, <= _CHUNK_SIZE long) of the response's,
+       or returns if there is no more or an exception has occurred
+
+    """
+
     try:
-        total = resp.headers["Content-Length"]
-        BufSize = 4096 * 1024
-        for chunk in resp.iter_content(BufSize):
+        for chunk in resp.iter_content(_CHUNK_SIZE):
             yield chunk
     except Exception as ex:
-        return "generate() threw " + str(ex)
-    return
+        logging.error("streamContent(): resp.iter_content() threw " + str(ex))
+    finally:
+        return
 
 
-def redirect(url: str, _headers):
-    # https://host:port/proxy/12345
+def _redirect(shortID: str):
+    """ For a given shortID retrieve the coresponding URL to the NCBI redirector service,
+        get a temporary signed URL to the target file from the redirector,
+        produce a Flask.Response object that can stream the target file
 
-    # replace "host:port/proxy" with redirectURL
-    (scheme, netloc, path, *dummy) = urlsplit(url)
-    shortID = path[7:]  # whatever is after "proxy/"
-    if not shortID:
-        return {"status_code": 200, "msg": "here be proxy"}
+       Parameters
+       ----------
+       url: URL in the form "https://host:port/proxy/shortID" as returned by an earlier request to
+           "http://host:$PORT/ga4gh/drs/v1/objects/$ACCESSION"
 
+       Returns
+       -------
+       a Flask.Response object that can stream the target file
+
+    """
+
+    # retrieve the redirectURL corresponding to the shortID
     redirectorURL = _rewriter.Retrieve(shortID)
     if not redirectorURL:
         return {"status_code": 404, "msg": "Accession is not found"}  # is this correct?
@@ -63,30 +91,45 @@ def redirect(url: str, _headers):
         redirectorURL, data={"ident": ComputeEnvironmentToken()}, allow_redirects=False
     )
 
-    # intercept a redirect, capture the temporary signed bucket URL and its expiration
+    # intercept a redirect, capture the temporary signed bucket URL
     if redir.status_code == 307:
         try:
             bucketUrl = redir.headers["Location"]
-            expiration = redir.headers["Expires"]
+            # expiration = redir.headers["Expires"]
 
-            # send request to bucket server
+            # send request to bucket server, ready to stream the data
             resp = requests.get(bucketUrl, stream=True)
 
-            return flask.Response(flask.stream_with_context(generate(resp)))
+            ret = flask.Response(flask.stream_with_context(_streamContent(resp)))
+            ret.content_type = resp.headers["Content-Type"]
+            ret.content_length = resp.headers["Content-Length"]
 
-        #            return "data\n", resp.status_code, resp.headers.items()
-        #            return resp.raw.read(), resp.status_code, resp.headers.items()
+            # this will start streaming
+            return ret
 
         except Exception as ex:
             # TODO: return something more appropriate
-            return {"status_code": 200, "msg": str(ex)}
+            return {"status_code": 500, "msg": str(ex)}
 
     # TODO: sanitize the unexpected response from the redirector
     return redir.text, redir.status_code, redir.headers.items()
 
 
-def do_proxy(request):
-    return redirect(connexion.request.url, request.headers)
+def do_proxy(shortID: str):
+    """ For a given shortID retrieve the coresponding URL to the NCBI redirector service,
+        get a temporary signed URL to the target file from the redirector,
+        produce a Flask.Response object that can stream the target file
+
+       Parameters
+       ----------
+       shortID: a key returned by an earlier request to "http://$HOST:$PORT/ga4gh/drs/v1/objects/$ACCESSION"
+
+       Returns
+       -------
+       a Flask.Response object that can stream the target file
+
+    """
+    return _redirect(shortID)
 
 
 # --------------------- Unit tests
@@ -94,26 +137,25 @@ def do_proxy(request):
 import unittest
 
 
-class TestServer(unittest.TestCase):
+class _TestProxy(unittest.TestCase):
+    def shortDescription(self):
+        return None  # do not pollute this module's docstring
 
     # test cases
 
     def test_Proxy_BadAcc(self):
-        res = redirect("https://localhost:80/proxy/blah", [])
-        print(res)
+        res = _redirect("blah")
+        # print(res)
+        self.assertEqual(404, res["status_code"])  # is 404 correct?
 
-    #        self.assertEqual(404, res['status_code']) # is 404 correct?
-
-    def test_Proxy_BadJwt(self):
-        # TODO: a working jwt
-        shortID = _rewriter.Rewrite(
-            "https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi?jwt=eyJ"
-        )
-        res = redirect("https://localhost:80/proxy/" + shortID, [])
-        print(res)
-
-
-#        self.assertEqual(501, res['status_code'])
+    # def test_Proxy_BadJwt(self):
+    #     # TODO: a working jwt
+    #     shortID = _rewriter.Rewrite(
+    #         "https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi?jwt=eyJ"
+    #     )
+    #     res = _redirect(shortID)
+    #     print(res)
+    #     self.assertEqual(404, res['status_code'])
 
 
 if __name__ == "__main__":

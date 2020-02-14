@@ -44,8 +44,8 @@ else
     RET=1
 fi
 
-out=$(curl -s http://localhost:$PORT/proxy/qq)
-if [[ "$out" =~ "here be proxy" ]]; then
+out=$(curl -s http://localhost:$PORT/proxy | jq -S '.status' )
+if [[ "$out" = "404" ]]; then
     echo "3 OK"
 else
     echo "3 Test failed: $out"
