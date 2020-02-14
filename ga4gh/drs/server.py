@@ -304,8 +304,8 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
     ret['_debug_sdl_status'] = sdl_status
     ret['_debug_sdl_text'] = sdl_text
     if sdl_status != 200:
-        logging.error("unexpected response from SDL: {sdl_status}")
-        ret.update({ 'status_code': 500, 'msg': 'Internal server error: SDL returned {sdl_status}' })
+        logging.error(f"unexpected response from SDL: {sdl_status}")
+        ret.update({ 'status_code': 500, 'msg': f"Internal server error: SDL returned {sdl_status}" })
         return ret
 
     try:
