@@ -1,4 +1,7 @@
-""" SDL -> DRS bridging server """
+""" SDL -> DRS bridging server
+
+    The normal entry point is GetObject
+"""
 
 # =============================================================================
 #
