@@ -326,9 +326,10 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
         return ret, 500, {}
 
-    if str(res['status_code']) == '200':
+    if 'status_code' not in res:
         ret.update(res)
-        return ret
+        return ret, 200, {}
+
     return ret, res['status_code'], {}
 
 def GetObject(object_id: str, expand: bool):
@@ -428,9 +429,9 @@ class _TestServer(unittest.TestCase):
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
     def test_GetObject(self):
-        res1 = _GetObject('SRR000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRR000000')
+        (res1, *dummy) = _GetObject('SRR000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRR000000')
         want = res1['contents'][0]
-        res = _GetObject(want['id'], True, 'http://localhost:8080/ga4gh/drs/v1/objects/'+want['id'])
+        (res, *dummy) = _GetObject(want['id'], True, 'http://localhost:8080/ga4gh/drs/v1/objects/'+want['id'])
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
