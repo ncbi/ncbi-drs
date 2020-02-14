@@ -71,8 +71,7 @@ def _redirect(shortID: str):
 
        Parameters
        ----------
-       url: URL in the form "https://host:port/proxy/shortID" as returned by an earlier request to
-           "http://host:$PORT/ga4gh/drs/v1/objects/$ACCESSION"
+       shortID: a key returned by an earlier request to "http://$HOST:$PORT/ga4gh/drs/v1/objects/$ACCESSION"
 
        Returns
        -------
@@ -137,8 +136,6 @@ import unittest
 
 
 class _TestProxy(unittest.TestCase):
-    def shortDescription(self):
-        return None  # do not pollute this module's docstring
 
     # test cases
 
