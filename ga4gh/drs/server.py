@@ -63,6 +63,68 @@ _rewriter = Rewriter()
 _extractor = TokenExtractor()
 _SDL_Redirector_Prefix = 'https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi'
 
+def _GetTestResponse() -> dict:
+    return json.loads("""
+{
+
+    "version": "2",
+    "result": [
+        {
+            "bundle": "SRR000000",
+            "status": 200,
+            "msg": "ok",
+            "files": [
+                {
+                    "object": "remote|SRR000000",
+                    "type": "bam/gzip",
+                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
+                    "size": 2299145289,
+                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
+                    "modificationDate": "2019-08-30T15:21:11Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                },
+                {
+                    "object": "remote|SRR000000",
+                    "type": "bam/gzip",
+                    "name": "f4.m.liv.DMSO1.rna.merged.sorted.bam",
+                    "size": 1128363105,
+                    "md5": "02b1ea5174fee52d14195fd07ece176a",
+                    "modificationDate": "2019-08-30T15:04:29Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.m.liv.DMSO1.rna.merged.sorted.bam.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                },
+                {
+                    "object": "remote|SRR000000",
+                    "type": "sra",
+                    "name": "SRR000000",
+                    "size": 1128363105,
+                    "md5": "02b1ea5174fee52d14195fd07ece176a",
+                    "modificationDate": "2019-08-30T15:04:29Z",
+                    "locations": [
+                        {
+                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/SRR000000.1",
+                            "service": "s3",
+                            "region": "us-east-1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
+    """)
+
 def _GetRedirURL(location, proxyURL: str) -> str:
     link = location['link']
     if link.startswith(_SDL_Redirector_Prefix):
@@ -148,8 +210,40 @@ def _Split_SRA_ID(object_id: str) -> (str, str, str, str):
     return (None, None, None, None)
 
 def _drsURI(requestURL: str, objectID: str) -> str:
+    """ See: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_drs_uris """
     (scheme, netloc, *dummy) = urlsplit(requestURL)
     return urlunsplit(('drs', netloc, objectID, None, None))
+
+def _ProcessSDLResponseWithFilePart(res: dict, object_id: str) -> dict:
+    if res['id'] == object_id:
+        if res['status'] == '200':
+            return {
+                'name': res['name'],
+                'size': res['size'],
+                'checksums': [{'checksum': res['md5'], 'type': 'md5'}],
+                'created_time': res['date'],
+                'access_methods': res['access_methods']
+            }
+        return { 'status_code': res['status'], 'msg': res['msg'] }
+    raise "unexpected"
+
+def _ProcessSDLResponse(sdlResponse: dict, object_id: str, accession: str, file_part: str, proxyURL: str) -> dict:
+    res = _ParseSDLResponse(sdlResponse, accession, file_part, proxyURL)
+
+    if not res:
+        return { 'status_code': 404, 'msg': 'not found' }
+
+    if file_part:
+        return _ProcessSDLResponseWithFilePart(res[0], object_id)
+
+    if res[0]['status'] == '200':
+        return {
+            'checksums': [{'checksum': _MD5_SDLResponses(res), 'type': 'md5'}],
+            'size': sum(x['size'] for x in res),
+            'created_time': min(x['date'] for x in res),
+            'contents': list({ 'id': x['id'], 'name': x['name'] } for x in res)
+        }
+    return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }
 
 def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: dict = {}) -> dict:
     (scheme, netloc, *dummy) = urlsplit(requestURL)
@@ -183,110 +277,46 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
     if cet:
         post_body['location'] = cet
 
-    # MARK: THIS IS TEST CODE
+    sdl_json = None
+    sdl_text = None
+    sdl_status = None
+
     if issuer == 'S' and serialNo == '000000': # SRR000000 was never used
-        test_response = """
-{
-    "version": "2",
-    "result": [
-        {
-            "bundle": "SRR000000",
-            "status": 200,
-            "msg": "ok",
-            "files": [
-                {
-                    "object": "remote|SRR000000",
-                    "type": "bam/gzip",
-                    "name": "f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam",
-                    "size": 2299145289,
-                    "md5": "aa8fbf47c010ee82e783f52f9e7a21d0",
-                    "modificationDate": "2019-08-30T15:21:11Z",
-                    "locations": [
-                        {
-                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam.1",
-                            "service": "s3",
-                            "region": "us-east-1"
-                        }
-                    ]
-                },
-                {
-                    "object": "remote|SRR000000",
-                    "type": "bam/gzip",
-                    "name": "f4.m.liv.DMSO1.rna.merged.sorted.bam",
-                    "size": 1128363105,
-                    "md5": "02b1ea5174fee52d14195fd07ece176a",
-                    "modificationDate": "2019-08-30T15:04:29Z",
-                    "locations": [
-                        {
-                            "link": "https://sra-pub-src-2.s3.amazonaws.com/SRR000000/f4.m.liv.DMSO1.rna.merged.sorted.bam.1",
-                            "service": "s3",
-                            "region": "us-east-1"
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-}
-        """
-        # ret['sdl_status'] = 200
-        # ret['sdl_json'] = json.loads(test_response)
-        # ret['auth'] = auth
-        res = _ParseSDLResponse(json.loads(test_response), accession, file_part, proxyURL)
+        # MARK: THIS IS TEST CODE
+        sdl_json = _GetTestResponse()
+        sdl_text = json.dumps(sdl_json)
+        sdl_status = 200
     else:
         url = SDL_RETRIEVE_CGI + '?' + urlencode(params)
         ret['_debug_request_url'] = url
         ret['_debug_form_body'] = post_body
         try:
             sdl = requests.post(url, data=post_body)
-            ret['_debug_sdl_status'] = sdl.status_code
-            ret['_debug_sdl_text'] = sdl.text
         except:
             logging.error("failed to contact SDL")
             ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
             return ret
+        else:
+            sdl_json = sdl.json()
+            sdl_text = sdl.text
+            sdl_status = sdl.status_code
 
-        try:
-            res = _ParseSDLResponse(sdl.json(), accession, file_part, proxyURL)
-        except:
-            logging.error("unexpected response from SDL: " + sdl.text)
-            ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
-            return ret
-
-    if len(res) == 0:
-        return { 'status_code': 404, 'msg': 'not found' }
-
-    if file_part:
-        if len(res) != 1 or res[0]['id'] != object_id or not res[0]['access_methods'] or len(res[0]['access_methods']) == 0:
-            logging.error("unexpected response from SDL: " + sdl.text)
-            ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
-            return ret
-
-        res = res[0]
-        if res['status'] != '200':
-            ret.update({ 'status_code': res['status'], 'msg': res['msg'] })
-            return ret
-
-        ret.update({
-                'name': res['name'],
-                'size': res['size'],
-                'checksums': [{'checksum': res['md5'], 'type': 'md5'}],
-                'created_time': res['date'],
-                'access_methods': res['access_methods']
-            })
+    ret['_debug_sdl_status'] = sdl_status
+    ret['_debug_sdl_text'] = sdl_text
+    if sdl_status != 200:
+        logging.error("unexpected response from SDL: {sdl_status}")
+        ret.update({ 'status_code': 500, 'msg': 'Internal server error: SDL returned {sdl_status}' })
         return ret
-    else:
-        if res[0]['status'] != '200':
-            ret.update({ 'status_code': res[0]['status'], 'msg': res[0]['msg'] })
-            return ret
 
-        ret.update({
-            'checksums': [{'checksum': _MD5_SDLResponses(res), 'type': 'md5'}],
-            'size': sum(x['size'] for x in res),
-            'created_time': min(x['date'] for x in res),
-            'contents': list({ 'id': x['id'], 'name': x['name'] } for x in res)
-        })
+    try:
+        res = _ProcessSDLResponse(sdl_json, object_id, accession, file_part, proxyURL)
+    except:
+        logging.error("unexpected response from SDL: " + json.dumps(sdl_json))
+        ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
         return ret
+
+    ret.update(res)
+    return ret
 
 def GetObject(object_id: str, expand: bool):
     logging.info(f"In GetObject {object_id} {expand}")
@@ -306,33 +336,81 @@ def GetAccessURL(object_id: str, access_id: str):
 # --------------------- Unit tests
 
 class TestServer(unittest.TestCase):
+    def test_Split_SRA_ID_S(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000')
+        self.assertEqual(issuer, 'S')
+        self.assertEqual(type, 'R')
+        self.assertEqual(serialNo, '000000')
+        self.assertFalse(file_part)
+
+    def test_Split_SRA_ID_E(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('ERR000000')
+        self.assertEqual(issuer, 'E')
+        self.assertEqual(type, 'R')
+        self.assertEqual(serialNo, '000000')
+        self.assertFalse(file_part)
+
+    def test_Split_SRA_ID_D(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('DRR000000')
+        self.assertEqual(issuer, 'D')
+        self.assertEqual(type, 'R')
+        self.assertEqual(serialNo, '000000')
+        self.assertFalse(file_part)
+
+    def test_Split_SRA_ID_file_part(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
+        self.assertEqual(issuer, 'S')
+        self.assertEqual(type, 'R')
+        self.assertEqual(serialNo, '000000')
+        self.assertEqual(file_part, 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
+
+    def test_Split_SRA_ID_X(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('XRR000000')
+        self.assertFalse(issuer)
+        self.assertFalse(type)
+        self.assertFalse(serialNo)
+        self.assertFalse(file_part)
+
+    def test_Split_SRA_ID_Fail_1(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000-a')
+        self.assertFalse(issuer)
+        self.assertFalse(type)
+        self.assertFalse(serialNo)
+        self.assertFalse(file_part)
+
+    def test_Split_SRA_ID_Fail_2(self):
+        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRY000000')
+        self.assertFalse(issuer)
+        self.assertFalse(type)
+        self.assertFalse(serialNo)
+        self.assertFalse(file_part)
+
+    def test_drsURI(self):
+        uri = _drsURI('http://localhost:8080/ga4gh/drs/v1/objects/SRR000000', 'SRR000000')
+        self.assertEqual(uri, 'drs://localhost:8080/SRR000000')
 
     def test_Request_for_run(self):
-        res = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000') # expand doesn't matter, true and false should produce the same result
-        self.assertEqual(res['size'], 2299145289+1128363105)
+        res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000', 'SRR000000', None, 'http://localhost:8080/proxy')
+        self.assertEqual(res['size'], 2299145289+1128363105+1128363105)
         self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
-        self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
+        self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176a02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
         self.assertIsInstance(res['contents'], list)
-        self.assertEqual(len(res['contents']), 2)
+        self.assertEqual(len(res['contents']), 3)
 
     def test_Request_for_file(self):
-        res = _GetObject('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', True, 'http://localhost:8080/objects/SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
-        self.assertEqual(res['name'], 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
+        res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 'SRR000000', 'f4.m.liv.DMSO1.rna.merged.sorted.bam', 'http://localhost:8080/proxy')
         self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
 
-    def test_Request_for_run_and_file(self):
-        res1 = _GetObject('SRR000000', True, 'http://localhost:8080/objects/SRR000000')
+    def test_GetObject(self):
+        res1 = _GetObject('SRR000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRR000000')
         want = res1['contents'][0]
-        res = _GetObject(want['id'], True, 'http://localhost:8080/objects/'+want['id'])
+        res = _GetObject(want['id'], True, 'http://localhost:8080/ga4gh/drs/v1/objects/'+want['id'])
         self.assertEqual(res['id'], want['id'])
         self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
         # print(res['access_methods'][0]['access_url'])
-
-    def test_Request_for_real_run(self):
-        res = _GetObject('SRR1219879', True, 'http://localhost:8080/objects/SRR1219879')
 
 def read():
     logging.info(f"In read()")
