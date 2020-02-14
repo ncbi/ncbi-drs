@@ -262,12 +262,12 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
 
     (issuer, type, serialNo, file_part) = _Split_SRA_ID(object_id)
     if not issuer:
-        return { 'status_code': 404, 'msg': "Only SRA accessions are available" }
+        return { 'status_code': 404, 'msg': "Only SRA accessions are available" }, 404, {}
 
     accession = f"{issuer}R{type}{serialNo}"
 
     if type != 'R':
-        return { 'status_code': 501, 'msg': "Only run accessions are implemented" }
+        return { 'status_code': 501, 'msg': "Only run accessions are implemented" }, 501, {}
 
     ret = {
         "id": object_id,
@@ -306,7 +306,7 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
         except:
             logging.error("failed to contact SDL")
             ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
-            return ret
+            return ret, 500, {}
         else:
             sdl_json = sdl.json()
             sdl_text = sdl.text
@@ -317,17 +317,19 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
     if sdl_status != 200:
         logging.error(f"unexpected response from SDL: {sdl_status}")
         ret.update({ 'status_code': 500, 'msg': f"Internal server error: SDL returned {sdl_status}" })
-        return ret
+        return ret, 500, {}
 
     try:
         res = _ProcessSDLResponse(sdl_json, object_id, accession, file_part, proxyURL)
     except:
         logging.error("unexpected response from SDL: " + json.dumps(sdl_json))
         ret.update({ 'status_code': 500, 'msg': 'Internal server error' })
-        return ret
+        return ret, 500, {}
 
-    ret.update(res)
-    return ret
+    if str(res['status_code']) == '200':
+        ret.update(res)
+        return ret
+    return ret, res['status_code'], {}
 
 def GetObject(object_id: str, expand: bool):
     """ Implements the GET /objects/<object_id>
