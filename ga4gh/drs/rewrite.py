@@ -55,16 +55,13 @@ class Rewriter:
 
     def Retrieve(self, shortID: str) -> str:
         """ Extract original SDL URL from rewritten URL """
-        fh = None
         try:
-            fh = open(_filepath(shortID), 'r')
-            obj = json.load(fh)
-            # print(obj)
-            return obj['from'] if obj['to'] == shortID else None
+            with open(_filepath(shortID), 'r') as fh:
+                obj = json.load(fh)
+                # print(obj)
+                return obj['from'] if obj['to'] == shortID else None
         except:
             return None
-        finally:
-            if fh: fh.close()
 
 if __name__ == "__main__":
     r = Rewriter()
