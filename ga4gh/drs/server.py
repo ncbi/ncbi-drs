@@ -195,7 +195,11 @@ def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str) -
     msg = response.get('message')
     return [{'status': str(response['status']), 'msg': msg if msg else response.get('msg')}]
 
-def _MD5_SDLResponses(response) -> str:
+def _MD5_SDLResponses(response: dict) -> str:
+    """ See: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_drsobject
+
+        checksums field
+    """
     m = hashlib.md5()
     for digest in sorted(x['md5'].encode('ascii') for x in response):
         m.update(digest)
@@ -246,6 +250,10 @@ def _ProcessSDLResponse(sdlResponse: dict, object_id: str, accession: str, file_
     return { 'status_code': res[0]['status'], 'msg': res[0]['msg'] }
 
 def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: dict = {}) -> dict:
+    """ Internal testable implementataion of the GET /objects/<object_id>
+
+        This is the main function.
+    """
     (scheme, netloc, *dummy) = urlsplit(requestURL)
     proxyURL = urlunsplit((scheme, netloc, 'proxy/', None, None))
 
@@ -319,6 +327,12 @@ def _GetObject(object_id: str, expand: bool, requestURL: str, requestHeaders: di
     return ret
 
 def GetObject(object_id: str, expand: bool):
+    """ Implements the GET /objects/<object_id>
+
+        See: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_getaccessurl
+
+        This is the main entry point.
+    """
     logging.info(f"In GetObject {object_id} {expand}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
@@ -326,6 +340,12 @@ def GetObject(object_id: str, expand: bool):
     return _GetObject(object_id, expand, connexion.request.url, connexion.request.headers)
 
 def GetAccessURL(object_id: str, access_id: str):
+    """ Implements the GET /objects/<object_id>/access/<access_id>
+
+        See: https://ga4gh.github.io/data-repository-service-schemas/preview/release/drs-1.0.0/docs/#_getaccessurl
+
+        This is unused by us.
+    """
     logging.info(f"In GetAccessURL {object_id} {access_id}")
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
@@ -335,7 +355,7 @@ def GetAccessURL(object_id: str, access_id: str):
 
 # --------------------- Unit tests
 
-class TestServer(unittest.TestCase):
+class _TestServer(unittest.TestCase):
     def test_Split_SRA_ID_S(self):
         (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000')
         self.assertEqual(issuer, 'S')
@@ -411,11 +431,6 @@ class TestServer(unittest.TestCase):
         self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
         self.assertIsNotNone(res['access_methods'][0]['access_url'])
         # print(res['access_methods'][0]['access_url'])
-
-def read():
-    logging.info(f"In read()")
-    return []
-
 
 if __name__ == "__main__":
     unittest.main()
