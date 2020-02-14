@@ -29,11 +29,17 @@
 import requests
 import flask
 import logging
-
-from .rewrite import Rewriter
-from .cloud import ComputeEnvironmentToken
-
+import sys
+import os
 from urllib.parse import urlsplit, urlunsplit, urljoin
+
+try:
+    from .rewrite import Rewriter
+    from .cloud import ComputeEnvironmentToken
+except:
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from rewrite import Rewriter
+    from cloud import ComputeEnvironmentToken
 
 _rewriter = Rewriter()
 
@@ -82,7 +88,7 @@ def _redirect(shortID: str):
     # retrieve the redirectURL corresponding to the shortID
     redirectorURL = _rewriter.Retrieve(shortID)
     if not redirectorURL:
-        return {"status_code": 404, "msg": "Accession is not found"}  # is this correct?
+        return {"status_code": 404, "msg": "Accession is not found"}, 404, {}
 
     # POST to the redirector with ident=CE
     redir = requests.post(
@@ -106,12 +112,12 @@ def _redirect(shortID: str):
             return ret
 
         except Exception as ex:
-            return {"status_code": 500, "msg": str(ex)}
+            return {"status_code": 500, "msg": str(ex)}, 500, {}
 
     return {
         "status_code": 501,
         "msg": f"unexpected response from redirector: {redir.status_code} {redir.reason}",
-    }
+    }, 501, {}
 
 
 def do_proxy(shortID: str):
@@ -141,7 +147,7 @@ class _TestProxy(unittest.TestCase):
     # test cases
 
     def test_Proxy_BadAcc(self):
-        res = _redirect("blah")
+        (res, *dummy) = _redirect("blah")
         # print(res)
         self.assertEqual(404, res["status_code"])  # is 404 correct?
 
