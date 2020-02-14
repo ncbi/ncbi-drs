@@ -24,8 +24,7 @@
 #
 # =============================================================================
 
-from tempfile import mkstemp, gettempdir
-from os import fdopen
+from tempfile import gettempdir
 from datetime import datetime
 from urllib.parse import urljoin
 import json
