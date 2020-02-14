@@ -87,14 +87,9 @@ def home():
 from ga4gh.drs.proxy import do_proxy
 
 
-@app.route("/proxy")
-def helloProxy():
-    return do_proxy(connexion.request)
-
-
 @app.route("/proxy/<shortID>")
 def proxy(shortID):
-    return do_proxy(connexion.request)
+    return do_proxy(shortID)
 
 
 # ---------------------
