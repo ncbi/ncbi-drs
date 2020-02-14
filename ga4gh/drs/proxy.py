@@ -26,7 +26,6 @@
    This module defines a transparent HTTP proxy for the NCBI's DRS webservice
 """
 
-import connexion
 import requests
 import flask
 import logging
