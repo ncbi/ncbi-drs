@@ -30,30 +30,35 @@ from datetime import datetime
 from urllib.parse import urljoin
 import json
 import re
+from secrets import token_urlsafe
 
 def _timestamp() -> str:
     return datetime.utcnow().isoformat("T") + "Z"
 
 _dir = gettempdir()
+def _filepath(shortID: str) -> str:
+    return f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl"
 
 class Rewriter:
     """ Rewrite SDL URL for our proxy
     """
     def Rewrite(self, urlString: str) -> str:
         """ Rewrite SDL URL for our proxy """
-        (fd, name) = mkstemp('.tempurl', 'gov.nih.nlm.ncbi.drs.', _dir, True)
-        m = re.search(r'gov\.nih\.nlm\.ncbi\.drs\.(.+)', name)
-        shortID = m[1][:-8]
-        fh = fdopen(fd, mode='w')
-        json.dump({'from': urlString, 'to': shortID, 'when': _timestamp()}, fh)
-        fh.close()
-        return shortID
+        for _ in range(5):
+            shortID = token_urlsafe()
+            try:
+                with open(_filepath(shortID), 'x') as f:
+                    json.dump({'from': urlString, 'to': shortID, 'when': _timestamp()}, f)
+                    return shortID
+            except FileExistsError:
+                pass
+        raise "something is wrong with secrets"
 
     def Retrieve(self, shortID: str) -> str:
         """ Extract original SDL URL from rewritten URL """
         fh = None
         try:
-            fh = open(f"{_dir}/gov.nih.nlm.ncbi.drs.{shortID}.tempurl")
+            fh = open(_filepath(shortID), 'r')
             obj = json.load(fh)
             # print(obj)
             return obj['from'] if obj['to'] == shortID else None
@@ -66,5 +71,5 @@ if __name__ == "__main__":
     r = Rewriter()
     n = r.Rewrite('foo')
     u = r.Retrieve(n)
-    print(u)
+    print(f"foo -> {n} -> {u}")
 
