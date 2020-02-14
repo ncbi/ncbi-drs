@@ -98,19 +98,20 @@ def _redirect(shortID: str):
             # send request to bucket server, ready to stream the data
             resp = requests.get(bucketUrl, stream=True)
 
+            # this will start streaming
             ret = flask.Response(flask.stream_with_context(_streamContent(resp)))
             ret.content_type = resp.headers["Content-Type"]
             ret.content_length = resp.headers["Content-Length"]
 
-            # this will start streaming
             return ret
 
         except Exception as ex:
-            # TODO: return something more appropriate
             return {"status_code": 500, "msg": str(ex)}
 
-    # TODO: sanitize the unexpected response from the redirector
-    return redir.text, redir.status_code, redir.headers.items()
+    return {
+        "status_code": 501,
+        "msg": f"unexpected response from redirector: {redir.status_code} {redir.reason}",
+    }
 
 
 def do_proxy(shortID: str):
