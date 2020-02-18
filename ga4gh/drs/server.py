@@ -356,7 +356,7 @@ def GetAccessURL(object_id: str, access_id: str):
     logging.info(f"params is {connexion.request.json}")
     logging.info(f"query is {connexion.request.args}")
 
-    return {'status_code': 401, 'msg': "GetAccessURL is unused"}
+    return {'status_code': 401, 'msg': "GetAccessURL is unused"}, 401, {}
 
 
 # --------------------- Unit tests
