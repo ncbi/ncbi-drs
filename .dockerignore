@@ -1,7 +1,7 @@
 README.md
 venv/
-*.pyc
-__pycache__/
+**/*.pyc
+**/__pycache__/
 instance/
 .pytest_cache/
 .coverage
@@ -9,6 +9,5 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-drs_app.log
-launch_ubuntu_jenkins_docker.sh
-launch_jenkins_ubuntu.sh
+**/.DS_Store
+*/Dockerfile
