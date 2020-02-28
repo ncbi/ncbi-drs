@@ -13,7 +13,7 @@ RUN apt-get -qq update && apt-get -qq install -y \
  && rm `find /var/log -type f`
 
 COPY files/ /
-COPY ga4gh /var/www/wsgi-scripts/ga4gh
+COPY source /var/www/wsgi-scripts/ga4gh/drs
 RUN echo \
     "ServerName 127.0.0.1:80\n" \
     "LogLevel info\n" \
