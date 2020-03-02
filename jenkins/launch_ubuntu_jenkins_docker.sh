@@ -77,7 +77,7 @@ sudo apt-get install -y docker.io python3 python3-pip \
 sudo usermod -aG docker ubuntu
 sudo chmod ugo+w /var/run/docker.sock
 ENDSCRIPT
-readonly b64json=$(base64 -w 0 "$script")
+#readonly b64json=$(base64 -w 0 "$script")
 
     #"UserData": "$b64json",
 cat > "$json" << ENDJSON

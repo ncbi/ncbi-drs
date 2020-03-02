@@ -94,7 +94,7 @@ sudo usermod -aG docker jenkins
 #cat /var/lib/jenkins//secrets/initialAdminPassword
 
 ENDSCRIPT
-readonly b64json=$(base64 -w 0 "$script")
+#readonly b64json=$(base64 -w 0 "$script")
 
     #"UserData": "$b64json",
 cat > "$json" << ENDJSON

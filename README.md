@@ -35,16 +35,16 @@ This is as far as you can test with public data.
 
 ## Accessing protected dbGaP data
 
-*The details of accessing protected dbGaP data through this service are in flux, 
+*The details of accessing protected dbGaP data through this service are in flux,
 this is for illustration purposes only.*
 
-You can access protected dbGaP data by providing a dbGaP access token as a 
+You can access protected dbGaP data by providing a dbGaP access token as a
 bearer token in the HTTP Authentication header. For example:
 ```sh
 curl -H "Authorization: Bearer @/path/to/token" http://localhost:8080/ga4gh/drs/v1/objects/SRR000001
 ```
 
-dbGaP has a test project that consists of publicly available data. Anyone can 
+dbGaP has a test project that consists of publicly available data. Anyone can
 get access to this data. See [dbGaP project: 1000 Genomes Used for Cloud Testing](https://trace.ncbi.nlm.nih.gov/Traces/study/?dbgap_project=0)
 
 ## A Note about the DRS IDs used by this service

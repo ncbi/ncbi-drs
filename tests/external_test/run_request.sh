@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 acc1="SRR1219879"
 acc2="SRR1219880"
 acc3="SRR1257493"
@@ -11,4 +13,6 @@ cart="jwt_cart_dbgap_prj_2476_19_years_expiration_date.txt"
 
 clear
 python3 drs_request.py $acc1 $my_drs $cart
-
+python3 drs_request.py $acc2 $my_drs $cart
+python3 drs_request.py $acc3 $my_drs $cart
+python3 drs_request.py $acc4 $my_drs $cart

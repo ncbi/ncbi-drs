@@ -4,7 +4,7 @@ LOG="/tmp/uwsgi_$USER.log"
 rm -f "$LOG"
 
 # echo "Starting uwsgi"
-UWSGI=$(which uwsgi)
+UWSGI=$(command -v uwsgi)
 echo "Starting uwsgi ($UWSGI)"
 
 PORT=$((RANDOM+1024))
