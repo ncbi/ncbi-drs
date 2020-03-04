@@ -75,7 +75,7 @@ itself. That URL leads to a transparent proxy that will perform the retrieval.
 Any egress charges will accrue to the account that is running this service and
 not to the account that owns the bucket.
 
-This Dockerfile builds for ubuntu's configuration of Apache, it is particular
+This `Dockerfile` builds for ubuntu's configuration of Apache, it is particular
 and sensitive to that.
 
 This service is implemented in Python and Flask.
@@ -85,3 +85,14 @@ This service is implemented in Python and Flask.
 ### If running on Amazon Linux 2,
 
 Install docker, see [Docker Basics for Amazon ECS](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/docker-basics.html)
+
+### Pinning
+
+It is possible to generate a version-pinned `Dockerfile` with the `pinner.py` script. For example:
+```sh
+python3 pinner.py > Dockerfile.pinned
+```
+Or:
+```sh
+python3 pinner.py | docker build -f - -t ncbi-drs:pinned .
+```
