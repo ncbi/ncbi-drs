@@ -473,3 +473,11 @@ def test_GetObject():
     assert res['name'] == 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam'
     assert res['checksums'][0]['checksum'] == 'aa8fbf47c010ee82e783f52f9e7a21d0'
     assert res['access_methods'][0]['access_url'] is not None
+
+def test_GetObject_SRX():
+    (res, *dummy) = _GetObject('SRX000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRX000000')
+    assert res['status_code'] == 501
+
+def test_GetObject_XXX():
+    (res, *dummy) = _GetObject('XXX000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/XXX000000')
+    assert res['status_code'] == 404
