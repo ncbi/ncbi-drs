@@ -33,6 +33,7 @@ class TokenExtractor:
             if m: return m[1]
         return None
 
+
 # --------------------- Unit tests
 
 def test_Good():

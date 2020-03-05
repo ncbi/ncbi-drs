@@ -187,6 +187,8 @@ def ComputeEnvironmentToken() -> str:
     return _cloud()['CE'] if _cloud else None
 
 
+# --------------------- Unit tests
+
 def _OnGCP():
     return True if _cloud and _cloud == _GetGCP_metadata else False
 

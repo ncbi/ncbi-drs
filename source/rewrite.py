@@ -63,6 +63,9 @@ class Rewriter:
         except:
             return None
 
+
+# --------------------- Unit tests
+
 def test():
     r = Rewriter()
     n = r.Rewrite('foo')
