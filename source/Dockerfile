@@ -10,9 +10,9 @@ RUN mkdir /source
 WORKDIR /source
 VOLUME /source
 
-CMD pytest -o cache_dir=/tmp \
-    server.py \
-    token_extract.py \
-    cloud.py \
-    proxy.py \
-    rewrite.py
+CMD [ "pytest", "-ocache_dir=/tmp" \
+    , "server.py" \
+    , "token_extract.py" \
+    , "cloud.py" \
+    , "proxy.py" \
+    , "rewrite.py" ]
