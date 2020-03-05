@@ -39,17 +39,10 @@ from urllib.parse import urlsplit, urlunsplit, urljoin, urlencode
 import sys
 import os
 
-try:
-    from .rewrite import Rewriter
-    from .cloud import ComputeEnvironmentToken
-    from .token_extract import TokenExtractor
-except:
-    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from rewrite import Rewriter
-    from cloud import ComputeEnvironmentToken
-    from token_extract import TokenExtractor
+from .rewrite import Rewriter
+from .cloud import ComputeEnvironmentToken
+from .token_extract import TokenExtractor
 
-# from connexion import NoContent
 from flask import make_response, abort
 
 SDL_RETRIEVE_CGI = "https://locate.ncbi.nlm.nih.gov/sdl/2/retrieve"
@@ -194,6 +187,8 @@ def _ParseSDLResponse(response, accession: str, file_part: str, proxyURL: str) -
     version = response.get('version')
     if version and version == '2':
         return list(_ParseSDLResponseV2(response, accession, file_part, proxyURL))
+    elif version:
+        return [{'status': '500', 'msg': 'Unexpected version: '+version}]
 
     msg = response.get('message')
     return [{'status': str(response['status']), 'msg': msg if msg else response.get('msg')}]
@@ -361,82 +356,121 @@ def GetAccessURL(object_id: str, access_id: str):
 
 # --------------------- Unit tests
 
-class _TestServer(unittest.TestCase):
-    def test_Split_SRA_ID_S(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000')
-        self.assertEqual(issuer, 'S')
-        self.assertEqual(type, 'R')
-        self.assertEqual(serialNo, '000000')
-        self.assertFalse(file_part)
+# test_values.py is not included in the production docker image
+_have_test_values = True
+try:
+    from .test_values import *
+except ModuleNotFoundError:
+    _have_test_values = False
 
-    def test_Split_SRA_ID_E(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('ERR000000')
-        self.assertEqual(issuer, 'E')
-        self.assertEqual(type, 'R')
-        self.assertEqual(serialNo, '000000')
-        self.assertFalse(file_part)
+def test_bad_version():
+    if not _have_test_values: return
+    res = _ParseSDLResponse(json.loads(bad_version), 'SRR10039049', None, 'http://localhost:8080/proxy')
+    assert isinstance(res, list)
+    assert len(res) == 1
+    assert res[0]['status'] == '500'
 
-    def test_Split_SRA_ID_D(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('DRR000000')
-        self.assertEqual(issuer, 'D')
-        self.assertEqual(type, 'R')
-        self.assertEqual(serialNo, '000000')
-        self.assertFalse(file_part)
+def test_404():
+    if not _have_test_values: return
+    res = _ParseSDLResponse(json.loads(response_404), 'SRR10039049', None, 'http://localhost:8080/proxy')
+    assert isinstance(res, list)
+    assert len(res) == 1
+    assert res[0]['status'] == '404'
 
-    def test_Split_SRA_ID_file_part(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
-        self.assertEqual(issuer, 'S')
-        self.assertEqual(type, 'R')
-        self.assertEqual(serialNo, '000000')
-        self.assertEqual(file_part, 'f4.m.liv.DMSO1.rna.merged.sorted.bam')
+def test_500():
+    if not _have_test_values: return
+    res = _ParseSDLResponse(json.loads(response_500), 'SRR10039049', None, 'http://localhost:8080/proxy')
+    assert isinstance(res, list)
+    assert len(res) == 1
+    assert res[0]['status'] == '500'
 
-    def test_Split_SRA_ID_X(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('XRR000000')
-        self.assertFalse(issuer)
-        self.assertFalse(type)
-        self.assertFalse(serialNo)
-        self.assertFalse(file_part)
+def test_big_response():
+    if not _have_test_values: return
+    res = _ParseSDLResponse(json.loads(response_SRP219736), 'SRP219736', None, 'http://localhost:8080/proxy')
+    assert isinstance(res, list)
+    assert len(res) == 96
+    assert res[0]['name'] == 'f4.m.liv.DMSO3.rna.merged.sorted.bam'
+    assert res[95]['name'] == 'f4.f.mscs.DMSO3.rna.merged.sorted.bam'
 
-    def test_Split_SRA_ID_Fail_1(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000-a')
-        self.assertFalse(issuer)
-        self.assertFalse(type)
-        self.assertFalse(serialNo)
-        self.assertFalse(file_part)
+def test_ok():
+    if not _have_test_values: return
+    res = _ParseSDLResponse(json.loads(response_ok), 'SRR10039049', None, 'http://localhost:8080/proxy')
+    assert isinstance(res, list)
+    assert len(res) == 1
+    assert res[0]['status'] == '200'
+    assert res[0]['name'] == 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam'
 
-    def test_Split_SRA_ID_Fail_2(self):
-        (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRY000000')
-        self.assertFalse(issuer)
-        self.assertFalse(type)
-        self.assertFalse(serialNo)
-        self.assertFalse(file_part)
+def test_Split_SRA_ID_S():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000')
+    assert issuer == 'S'
+    assert type == 'R'
+    assert serialNo == '000000'
+    assert not file_part
 
-    def test_drsURI(self):
-        uri = _drsURI('http://localhost:8080/ga4gh/drs/v1/objects/SRR000000', 'SRR000000')
-        self.assertEqual(uri, 'drs://localhost:8080/SRR000000')
+def test_Split_SRA_ID_E():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('ERR000000')
+    assert issuer == 'E'
+    assert type == 'R'
+    assert serialNo == '000000'
+    assert not file_part
 
-    def test_Request_for_run(self):
-        res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000', 'SRR000000', None, 'http://localhost:8080/proxy')
-        self.assertEqual(res['size'], 2299145289+1128363105+1128363105)
-        self.assertEqual(res['created_time'], min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z'))
-        self.assertEqual(res['checksums'][0]['checksum'], hashlib.md5('02b1ea5174fee52d14195fd07ece176a02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest())
-        self.assertIsInstance(res['contents'], list)
-        self.assertEqual(len(res['contents']), 3)
+def test_Split_SRA_ID_D():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('DRR000000')
+    assert issuer == 'D'
+    assert type == 'R'
+    assert serialNo == '000000'
+    assert not file_part
 
-    def test_Request_for_file(self):
-        res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 'SRR000000', 'f4.m.liv.DMSO1.rna.merged.sorted.bam', 'http://localhost:8080/proxy')
-        self.assertEqual(res['checksums'][0]['checksum'], '02b1ea5174fee52d14195fd07ece176a')
-        self.assertIsNotNone(res['access_methods'][0]['access_url'])
+def test_Split_SRA_ID_file_part():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam')
+    assert issuer == 'S'
+    assert type == 'R'
+    assert serialNo == '000000'
+    assert file_part == 'f4.m.liv.DMSO1.rna.merged.sorted.bam'
 
-    def test_GetObject(self):
-        (res1, *dummy) = _GetObject('SRR000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRR000000')
-        want = res1['contents'][0]
-        (res, *dummy) = _GetObject(want['id'], True, 'http://localhost:8080/ga4gh/drs/v1/objects/'+want['id'])
-        self.assertEqual(res['id'], want['id'])
-        self.assertEqual(res['name'], 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam')
-        self.assertEqual(res['checksums'][0]['checksum'], 'aa8fbf47c010ee82e783f52f9e7a21d0')
-        self.assertIsNotNone(res['access_methods'][0]['access_url'])
-        # print(res['access_methods'][0]['access_url'])
+def test_Split_SRA_ID_X():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('XRR000000')
+    assert not issuer
+    assert not type
+    assert not serialNo
+    assert not file_part
 
-if __name__ == "__main__":
-    unittest.main()
+def test_Split_SRA_ID_Fail_1():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRR000000-a')
+    assert not issuer
+    assert not type
+    assert not serialNo
+    assert not file_part
+
+def test_Split_SRA_ID_Fail_2():
+    (issuer, type, serialNo, file_part) = _Split_SRA_ID('SRY000000')
+    assert not issuer
+    assert not type
+    assert not serialNo
+    assert not file_part
+
+def test_drsURI():
+    uri = _drsURI('http://localhost:8080/ga4gh/drs/v1/objects/SRR000000', 'SRR000000')
+    assert uri == 'drs://localhost:8080/SRR000000'
+
+def test_Request_for_run():
+    res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000', 'SRR000000', None, 'http://localhost:8080/proxy')
+    assert res['size'] == 2299145289+1128363105+1128363105
+    assert res['created_time'] == min('2019-08-30T15:21:11Z', '2019-08-30T15:04:29Z')
+    assert res['checksums'][0]['checksum'] == hashlib.md5('02b1ea5174fee52d14195fd07ece176a02b1ea5174fee52d14195fd07ece176aaa8fbf47c010ee82e783f52f9e7a21d0'.encode('ascii')).hexdigest()
+    assert isinstance(res['contents'], list)
+    assert len(res['contents']) == 3
+
+def test_Request_for_file():
+    res = _ProcessSDLResponse(_GetTestResponse(), 'SRR000000.f4.m.liv.DMSO1.rna.merged.sorted.bam', 'SRR000000', 'f4.m.liv.DMSO1.rna.merged.sorted.bam', 'http://localhost:8080/proxy')
+    assert res['checksums'][0]['checksum'] == '02b1ea5174fee52d14195fd07ece176a'
+    assert res['access_methods'][0]['access_url'] is not None
+
+def test_GetObject():
+    (res1, *dummy) = _GetObject('SRR000000', True, 'http://localhost:8080/ga4gh/drs/v1/objects/SRR000000')
+    want = res1['contents'][0]
+    (res, *dummy) = _GetObject(want['id'], True, 'http://localhost:8080/ga4gh/drs/v1/objects/'+want['id'])
+    assert res['id'] == want['id']
+    assert res['name'] == 'f4.f.mscs.DMSO5.meth.merged.sorted.uniq.bam'
+    assert res['checksums'][0]['checksum'] == 'aa8fbf47c010ee82e783f52f9e7a21d0'
+    assert res['access_methods'][0]['access_url'] is not None
