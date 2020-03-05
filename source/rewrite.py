@@ -63,9 +63,9 @@ class Rewriter:
         except:
             return None
 
-if __name__ == "__main__":
+def test():
     r = Rewriter()
     n = r.Rewrite('foo')
     u = r.Retrieve(n)
-    print(f"foo -> {n} -> {u}")
+    assert u == 'foo'
 

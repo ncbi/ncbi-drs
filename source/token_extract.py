@@ -35,27 +35,22 @@ class TokenExtractor:
 
 # --------------------- Unit tests
 
-import unittest
+def test_Good():
+    extractor = TokenExtractor()
+    token = extractor.extract('Bearer deadbeef')
+    assert token == 'deadbeef'
 
-class _TestProxy(unittest.TestCase):
+def test_Bad1():
+    extractor = TokenExtractor()
+    token = extractor.extract(None)
+    assert not token
 
-    _extractor = TokenExtractor()
+def test_Bad2():
+    extractor = TokenExtractor()
+    token = extractor.extract('')
+    assert not token
 
-    def test_Good(self):
-        token = self._extractor.extract('Bearer deadbeef')
-        self.assertEqual(token, 'deadbeef')
-
-    def test_Bad1(self):
-        token = self._extractor.extract(None)
-        self.assertFalse(token)
-
-    def test_Bad2(self):
-        token = self._extractor.extract('')
-        self.assertFalse(token)
-
-    def test_Bad3(self):
-        token = self._extractor.extract('deadbeef')
-        self.assertFalse(token)
-
-if __name__ == "__main__":
-    unittest.main()
+def test_Bad3():
+    extractor = TokenExtractor()
+    token = extractor.extract('deadbeef')
+    assert not token

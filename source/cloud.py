@@ -187,47 +187,30 @@ def ComputeEnvironmentToken() -> str:
     return _cloud()['CE'] if _cloud else None
 
 
-_verbose = None
+def _OnGCP():
+    return True if _cloud and _cloud == _GetGCP_metadata else False
 
-import unittest
+def _OnAWS():
+    return True if _cloud and _cloud == _GetAWS_metadata else False
 
-class TestServer(unittest.TestCase):
-    def _OnGCP(self):
-        return True if _cloud and _cloud == _GetGCP_metadata else False
+# test cases
 
-    def _OnAWS(self):
-        return True if _cloud and _cloud == _GetAWS_metadata else False
+def test_GetCE_docstring():
+    # make sure has a docstring
+    assert ComputeEnvironmentToken.__doc__ is not None
 
-    # test cases
+def test_GetCE():
+    # output on the current platform
+    s = ComputeEnvironmentToken()
 
-    def test_GetCE_docstring(self):
-        # make sure has a docstring
-        self.assertTrue(ComputeEnvironmentToken.__doc__)
+    if _OnGCP():
+        # an instance identity token, base64url-encoded
+        assert s != ""
 
-    def test_GetCE(self):
-        # output on the current platform
-        s = ComputeEnvironmentToken()
+    elif _OnAWS():
+        # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
+        assert s.find(".") != -1
 
-        if self._OnGCP():
-            # an instance identity token, base64url-encoded
-            if _verbose:
-                print("GCP detected")
-            self.assertNotEqual(s, "")
-
-        elif self._OnAWS():
-            # a base64-encoded Instance Identity Document (Json) followed by "." and a base64-encoded pkcs7 signature
-            if _verbose:
-                print("AWS detected")
-            self.assertNotEqual(s.find("."), -1)
-
-        else:
-            # neither AWS nor GCP: empty
-            if _verbose:
-                print("no cloud detected")
-            self.assertEqual(s, None)
-
-import sys
-
-if __name__ == "__main__":
-    _verbose = "--verbose" in sys.argv
-    unittest.main()
+    else:
+        # neither AWS nor GCP: empty
+        assert s is None
