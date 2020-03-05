@@ -31,7 +31,6 @@ import connexion
 import datetime
 import logging
 import requests
-import unittest
 import re
 import json
 import hashlib
