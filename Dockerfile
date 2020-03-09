@@ -1,5 +1,4 @@
 FROM ubuntu:latest
-# Currently LTS (5 year support). 18.04 likely will roll to 20.04
 
 LABEL author="Kenneth Durbrow" maintainer="kenneth.durbrow@nih.gov"
 
@@ -8,7 +7,8 @@ RUN apt-get -qq update && apt-get -qq install -y \
     libapache2-mod-wsgi-py3 \
     python3-pip \
  >> /dev/null \
- && pip3 -q install connexion \
+ && pip3 -q install \
+    connexion \
  && rm -rf /var/lib/apt/lists \
  && rm `find /var/log -type f`
 
