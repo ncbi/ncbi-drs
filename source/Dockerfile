@@ -1,8 +1,18 @@
-FROM ubuntu:latest
+FROM alpine:latest
 
 LABEL author="Kenneth Durbrow" maintainer="kenneth.durbrow@nih.gov"
 
-RUN apt-get update && \
-    apt-get -q -y install python3 python3-pip
+RUN apk update && \
+    apk add python3 && \
+    pip3 -q install connexion pytest
 
-RUN pip3 -q install connexion  python_dateutil
+RUN mkdir /source
+WORKDIR /source
+VOLUME /source
+
+CMD [ "pytest", "-ocache_dir=/tmp" \
+    , "server.py" \
+    , "token_extract.py" \
+    , "cloud.py" \
+    , "proxy.py" \
+    , "rewrite.py" ]

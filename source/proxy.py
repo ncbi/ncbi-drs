@@ -139,27 +139,15 @@ def do_proxy(shortID: str):
 
 # --------------------- Unit tests
 
-import unittest
+def test_Proxy_BadAcc():
+    (res, *dummy) = _redirect("blah")
+    assert 404 == res["status_code"]
 
-
-class _TestProxy(unittest.TestCase):
-
-    # test cases
-
-    def test_Proxy_BadAcc(self):
-        (res, *dummy) = _redirect("blah")
-        # print(res)
-        self.assertEqual(404, res["status_code"])  # is 404 correct?
-
-    # def test_Proxy_BadJwt(self):
-    #     # TODO: a working jwt
-    #     shortID = _rewriter.Rewrite(
-    #         "https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi?jwt=eyJ"
-    #     )
-    #     res = _redirect(shortID)
-    #     print(res)
-    #     self.assertEqual(404, res['status_code'])
-
-
-if __name__ == "__main__":
-    unittest.main()
+# def test_Proxy_BadJwt(self):
+#     # TODO: a working jwt
+#     shortID = _rewriter.Rewrite(
+#         "https://locate.ncbi.nlm.nih.gov/sdlr/sdlr.fcgi?jwt=eyJ"
+#     )
+#     res = _redirect(shortID)
+#     print(res)
+#     self.assertEqual(404, res['status_code'])
