@@ -1,4 +1,5 @@
 import re
+import sys
 import subprocess
 
 pkg = {} # version info from dpkg
@@ -6,22 +7,26 @@ pip = {} # version info from pip
 rel = '' # version info from lsb-release
 
 # build the image and get its ID
-image = subprocess.run('docker build -qq .', shell=True, capture_output=True, check=True, encoding='utf-8').stdout.strip()
+image = subprocess.run('docker build -qq .', shell=True, stdout=subprocess.PIPE, check=True, encoding='utf-8').stdout.strip()
+def docker_run(command: str) -> subprocess.CompletedProcess:
+    return subprocess.run(f'docker run --rm {image} {command}', shell=True, stdout=subprocess.PIPE, check=True, encoding='utf-8')
 
 # query pip for version info of installed modules
-for l in subprocess.run('docker run --rm '+image+' pip3 freeze', shell=True, capture_output=True, check=True, encoding='utf-8').stdout.split():
+for l in docker_run('pip3 freeze').stdout.splitlines():
     m = re.match(r'^([^=]+)==(.+)$', l)
     if m: pip[m[1]] = m[2]
 
 # query dpkg for version info of installed packages
-for l in subprocess.run('docker run --rm '+image+' dpkg-query -W --showformat \'${Package}=${Version}\\\n\'', shell=True, capture_output=True, check=True, encoding='utf-8').stdout.split():
+for l in docker_run('dpkg-query -W --showformat \'${Package}=${Version}\\\n\'').stdout.splitlines():
     m = re.match(r'^([^=]+)=(.+)$', l)
     if m: pkg[m[1]] = m[2]
 
 # query lsb-release for ubuntu release number
-for l in subprocess.run('docker run --rm '+image+' cat /etc/lsb-release', shell=True, capture_output=True, check=True, encoding='utf-8').stdout.split():
+for l in docker_run('cat /etc/lsb-release').stdout.splitlines():
     m = re.match(r'^DISTRIB_RELEASE=(.+)$', l)
-    if m: rel = m[1]
+    if m:
+        rel = m[1]
+        break
 
 # rewrite the Dockerfile with the pinned versions
 with open('Dockerfile', 'r') as f:
