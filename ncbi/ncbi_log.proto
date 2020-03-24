@@ -1,0 +1,60 @@
+/* =============================================================================
+ *
+ *                            PUBLIC DOMAIN NOTICE
+ *               National Center for Biotechnology Information
+ *
+ *  This software/database is a "United States Government Work" under the
+ *  terms of the United States Copyright Act.  It was written as part of
+ *  the author's official duties as a United States Government employee and
+ *  thus cannot be copyrighted.  This software/database is freely available
+ *  to the public for use. The National Library of Medicine and the U.S.
+ *  Government have not placed any restriction on its use or reproduction.
+ *
+ *  Although all reasonable efforts have been taken to ensure the accuracy
+ *  and reliability of the software and data, the NLM and the U.S.
+ *  Government do not and cannot warrant the performance or results that
+ *  may be obtained by using this software or data. The NLM and the U.S.
+ *  Government disclaim all warranties, express or implied, including
+ *  warranties of performance, merchantability or fitness for any particular
+ *  purpose.
+ *
+ *  Please cite the author in any work or product based on this material.
+ *  ========================================================================
+ */
+
+syntax = "proto3";
+
+message Timestamp {
+  int64 seconds = 1; // since epoch
+  uint32 nanos = 2; // nanoseconds
+}
+
+message strides_log {
+    Timestamp start=1;  // Will have seconds and nanos
+    Timestamp end=2;
+    string ip=3;
+    uint32 status=4;
+    string domain=5;
+    enum  HTTP_Cmd { // RFCs 5789 & 7231
+        GET = 0;
+        HEAD = 1;
+        POST = 2;
+        PUT = 3;
+        DELETE = 4;
+        CONNECT = 5;
+        OPTIONS = 6;
+        TRACE = 7;
+        PATCH = 8;
+    }
+    repeated HTTP_Cmd cmds=6;
+    uint64 bytecount=7;
+    string agent=8;
+    uint64 cnt=9;
+    string acc=10;
+    string source=11;
+    string msg=12;
+// NB: First 15 fields require one less byte to encode, make them common.
+    string phid=16;
+    string sessid=17;
+    string version=18;
+}

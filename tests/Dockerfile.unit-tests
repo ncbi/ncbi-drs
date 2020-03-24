@@ -1,0 +1,20 @@
+# Example:
+#  docker run -t --rm `docker build -q -f Dockerfile.unit-tests .`
+#  docker run -v $HOME:/host -e TOKEN_FILE=/host/magic.jwt -t --rm `docker build -q -f Dockerfile.unit-tests .`
+
+FROM alpine:latest
+
+LABEL author="Kenneth Durbrow" maintainer="kenneth.durbrow@nih.gov"
+
+RUN apk update && apk upgrade
+
+RUN apk add bash curl gcc alpine-sdk linux-headers \
+        jq python3-dev python3 py3-nose && \
+    pip3 -q install connexion python_dateutil uwsgi
+
+COPY openapi ./openapi
+COPY ut_mini.sh ./unit_test.sh
+COPY drs.py .
+COPY ga4gh ./ga4gh
+
+CMD env USER=foo bash unit_test.sh
