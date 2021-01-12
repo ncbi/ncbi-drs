@@ -12,7 +12,7 @@ FROM setup AS builder
 COPY src src
 COPY data-repository-service-schemas/openapi/data_repository_service.swagger.yaml \
      src/drs/openapi/data_repository_service.swagger.yaml
-RUN sed -e '/x-swagger-router-controller/ s/ga4gh.drs.server/drs.server/' -i src/drs/openapi/data_repository_service.swagger.yaml
+RUN sed -e '/x-swagger-router-controller/ s/ga4gh.//' -i src/drs/openapi/data_repository_service.swagger.yaml
      
 FROM builder AS runner
 EXPOSE 80
@@ -21,5 +21,6 @@ CMD ["uwsgi", "--http-socket" ":80", "--master", "--module", "drs.main"]
 FROM builder AS tester
 RUN pip install --no-cache --requirement /tmp/requirements/test.txt
 COPY tests tests
+ENV PYTHONUNBUFFERED=0
 ENV PYTHONPATH=src
 CMD ["pytest", "-v", "-rsx", "tests"]
