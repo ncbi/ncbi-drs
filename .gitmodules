@@ -1,0 +1,3 @@
+[submodule "data-repository-service-schemas"]
+	path = data-repository-service-schemas
+	url = https://github.com/ncbi/data-repository-service-schemas.git
