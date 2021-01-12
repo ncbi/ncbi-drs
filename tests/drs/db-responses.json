@@ -1,0 +1,57 @@
+[
+    {
+        "objectID": "3d647f9d5d29e7913cde82774d79658a",
+        "isBundle": 1,
+        "objectName": "SRR000021",
+        "objectChecksum": "3d647f9d5d29e7913cde82774d79658a",
+        "objectCreateTime": "2020-06-17 07:13:06.173",
+        "objectSize": 509301098,
+        "objectFileID": null,
+        "children": [
+            {
+                "childID": "0b7ce353426012aef3f22bb115a839be",
+                "childName": "EI3DH7J02.sff"
+            },
+            {
+                "childID": "973fc34a0bb7af00717860124891333c",
+                "childName": "EI3DH7J01.sff"
+            }
+        ]
+    },
+    {
+        "objectID": "7d0b9ed4958e876a6a50ef6ae134de0f",
+        "isBundle": 1,
+        "objectName": "SRR287671",
+        "objectChecksum": "7d0b9ed4958e876a6a50ef6ae134de0f",
+        "objectCreateTime": "2014-11-13 16:40:21.000",
+        "objectSize": 1117392407,
+        "objectFileID": null,
+        "children": [
+            {
+                "childID": "dbf554827136113a58d0d1c32ca29e81",
+                "childName": "m110613_062130_42141_c100154882555500000315044108061125_s1_p0.bas.h5"
+            }
+        ]
+    },
+    {
+        "objectID": "dbf554827136113a58d0d1c32ca29e81",
+        "isBundle": 1,
+        "objectName": "m110613_062130_42141_c100154882555500000315044108061125_s1_p0.bas.h5",
+        "objectChecksum": "dbf554827136113a58d0d1c32ca29e81",
+        "objectCreateTime": "2014-11-13 16:40:21.000",
+        "objectSize": 1117392407,
+        "objectFileID": 2556735,
+        "locations": [
+            {
+                "file_name": "https://sra-pub-src-1.s3.amazonaws.com/SRR287671/m110613_062130_42141_c100154882555500000315044108061125_s1_p0.bas.h5.1",
+                "service": "s3",
+                "region": "us-east-1"
+            },
+            {
+                "file_name": "https://storage.googleapis.com/sra-pub-src-1/SRR287671/m110613_062130_42141_c100154882555500000315044108061125_s1_p0.bas.h5.1",
+                "service": "gs",
+                "region": "US"
+            }
+        ]
+    }
+]
