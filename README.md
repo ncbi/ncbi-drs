@@ -23,6 +23,12 @@ git submodule update --init --recursive
 ----
 
 # Building
+Note: Make sure you have fresh base images.
+If you haven't recently done so, run
+```
+docker pull alpine:latest
+```
+
 The build result is inside a Docker container. To build it, run
 ```
 docker build --target runner -t drs-server .
