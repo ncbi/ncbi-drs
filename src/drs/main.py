@@ -49,13 +49,11 @@ logger.info(f"logging started: {__name__}")
 
 # Create the application instance
 options = {
-    "serve_spec": False,
+    "serve_spec": True,
     "swagger_ui": False,
-    "swagger_json": True
-}  # We generate our own swagger ui on the client side
+}
 
-# Seems like cargo-culting; this line does nothing.
-# os.environ["APIKEYINFO_FUNC"] = "drs.server.apikey_auth"
+os.environ["APIKEYINFO_FUNC"] = "drs.server.apikey_auth"
 
 app = connexion.App(__name__, options=options, specification_dir="./openapi")
 
@@ -63,7 +61,6 @@ swagger_yml = 'data_repository_service.swagger.yaml'
 app.add_api(swagger_yml, strict_validation=True)
 
 application = app.app
-spec_js = None
 
 
 # Create a URL route in our application for "/"
@@ -75,24 +72,6 @@ def health_check():
 @app.route("/ga4gh/drs/v1/")
 def home():
     return send_from_directory('./openapi', 'index.html')
-
-
-@app.route("/ga4gh/drs/v1/spec.js")
-def spec():
-    global spec_js
-    if not spec_js:
-        import json
-        from pathlib import Path
-
-        openapi_path = Path('drs/openapi')
-        spec_yaml = openapi_path.joinpath(swagger_yml)
-        spec_js = openapi_path.joinpath('spec.js')
-        with open(spec_yaml) as f:
-            import yaml
-            ml = yaml.load(f, Loader=yaml.FullLoader)
-        spec_js = 'var spec = %s;' % json.dumps(ml)
-
-    return make_response(Response(spec_js), 200)
 
 
 # Create a URL route in our application for "/"

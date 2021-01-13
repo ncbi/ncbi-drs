@@ -29,30 +29,29 @@
 
 <div id="swagger-ui"></div>
 
-<script src="spec.js"> </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.24.2/swagger-ui-bundle.js"> </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.24.2/swagger-ui-standalone-preset.js"> </script>
 <script>
 window.onload = function() {
+  fetch('swagger.json')
+    .then(response => response.json())
+    .then(data => {
+      const ui = SwaggerUIBundle({
+        spec: data,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      })
 
-  // var spec = %s; loaded from script spec.js
-
-  // Build a system
-  const ui = SwaggerUIBundle({
-    spec: spec,
-    dom_id: '#swagger-ui',
-    deepLinking: true,
-    presets: [
-      SwaggerUIBundle.presets.apis,
-      SwaggerUIStandalonePreset
-    ],
-    plugins: [
-      SwaggerUIBundle.plugins.DownloadUrl
-    ],
-    layout: "StandaloneLayout"
-  })
-
-  window.ui = ui
+      window.ui = ui
+    })
 }
 </script>
 <noscript><h3><center>This page uses JavaScript to display the documentation.</center></h3></noscript>
