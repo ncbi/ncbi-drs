@@ -216,10 +216,9 @@ class DRS_Request:
                 'access_id': loc['access_id'],
                 'type': "https"
             }
-            service = loc['service']
-            region = loc['region']
-            if service and region:
-                rslt['region'] = f"{service}.{region}"
+            rslt['provider'] = loc['bucketProvider']
+            rslt['region'] = loc['bucketRegion']
+            rslt['payment-required'] = True if loc['bucketIsUserPays'] else False
             return rslt
 
         return DRS_Response({'locations': [access_method(x) for x in rslt.good]})
@@ -245,7 +244,8 @@ class DRS_Request:
     @staticmethod
     def call_db(object_id: str, expand: bool) -> dict:
         """ This function is a target for mocking """
-        raise NotImplementedError
+        from .db import GetFullObject
+        return GetFullObject(object_id, expand)
 
     @staticmethod
     def call_ras(passport: str, trans_id: str) -> DRS_Response:
