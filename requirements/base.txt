@@ -1,4 +1,7 @@
 requests
 flask
+flask_cors
+python-dateutil
+swagger-spec-validator
+bravado
 connexion
-uwsgi
